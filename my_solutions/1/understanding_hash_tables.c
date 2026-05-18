@@ -80,7 +80,7 @@ int ht_get (
 	int idx = hash(key, table->size);
 	for (HashEntry *p=table->buckets[idx]; NULL != p; p=p->next) {
 		if (key == p->key) {
-			out_value = p->value;
+			*out_value = p->value;
 			return 1;
 		}
 		return 0;
@@ -93,7 +93,7 @@ void ht_print (
 	printf("HashTable size: %d\n", table->size);
 	for (int i=0; i<table->size; i++) {
 		printf("\tbucket[%d] -> ", i);
-		for (HashEntry *p=table->buckets[i]; NULL != p; p->next) {
+		for (HashEntry *p=table->buckets[i]; NULL != p; p=p->next) {
 			printf("(%d=%d) ->", p->key, p->value);
 		}
 		printf("NULL\n");
@@ -101,4 +101,39 @@ void ht_print (
 }
 
 // free
-void ht_free () {} 
+void ht_free (
+	HashTable *table
+) {
+	// walk every chain and free every node, then free bucket array, then table struct itself
+	for (int i=0; i<table->size; i++) {
+		HashEntry *p = table->buckets[i];
+		while (NULL !=p) {
+			HashEntry *next = p->next;
+			free(p);
+			p = next;
+		}
+	}
+	free(table->buckets);
+	free(table);
+} 
+
+int main (
+	void
+) {
+	// deliberately small table
+	HashTable *table = ht_create(10);
+
+	ht_put(table, 3, 100);
+	ht_put(table, 10, 200);
+	ht_put(table, 17, 300);
+	ht_put(table, 24, 400);
+	ht_put(table, 4, 500);
+	ht_put(table, 5, 600);
+	ht_put(table, 6, 700);
+	ht_put(table, 1, 700);
+	ht_put(table, 2, 700);
+	ht_put(table, 3, 700);
+
+	ht_print(table);
+	ht_free(table);
+}
