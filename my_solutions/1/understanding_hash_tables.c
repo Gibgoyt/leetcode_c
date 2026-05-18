@@ -54,6 +54,7 @@ void ht_put (
 	int value
 ) {
 	int idx = hash(key, table->size);
+	printf("ht_put() into table %p, key: %d, value: %d, idx: %d\n", table, key, value, idx);
 
 	// walk through chain at this bucket (is key already here??)
 	for (HashEntry *p=table->buckets[idx]; NULL != p; p=p->next) {
