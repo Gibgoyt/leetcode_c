@@ -4,6 +4,7 @@
 #
 # Usage:
 #   ./final_solution.sh --compile   compile the C source into /tmp/leetcode_c_1_final_solution
+#   ./final_solution.sh --debug     compile with -DDEBUG (verbose hash-table traces)
 #   ./final_solution.sh --run       execute the compiled binary
 #
 
@@ -15,7 +16,7 @@ SRC="${SCRIPT_DIR}/final_solution.c"
 BIN="/tmp/leetcode_c_1_final_solution"
 
 usage() {
-	echo "Usage: $0 --compile | --run" >&2
+	echo "Usage: $0 --compile | --debug | --run" >&2
 	exit 1
 }
 
@@ -27,6 +28,10 @@ case "$1" in
 	--compile)
 		gcc -Wall -Wextra -O2 -g "${SRC}" -o "${BIN}"
 		echo "Compiled: ${BIN}"
+		;;
+	--debug)
+		gcc -Wall -Wextra -O0 -g -DDEBUG "${SRC}" -o "${BIN}"
+		echo "Compiled (DEBUG): ${BIN}"
 		;;
 	--run)
 		if [[ ! -x "${BIN}" ]]; then

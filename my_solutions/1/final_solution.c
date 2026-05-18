@@ -84,6 +84,21 @@ static int ht_get(
 	return 0;
 }
 
+#if defined(DEBUG)
+	static void ht_print(
+		HashTable *table
+	) {
+		printf("  HashTable size=%d\n", table->size);
+		for (int i=0; i<table->size; i++) {
+			printf("    bucket[%d] -> ", i);
+			for (HashEntry *p=table->buckets[i]; p != NULL; p=p->next) {
+				printf("(key=%d, value=%d) -> ", p->key, p->value);
+			}
+			printf("NULL\n");
+		}
+	}
+#endif
+
 static void ht_free(
 	HashTable *table
 ) {
@@ -110,18 +125,48 @@ int *twoSum(
 
 	HashTable *table = ht_create(2*numsSize + 1);
 
+	#if defined(DEBUG)
+		printf("\n[twoSum] nums = [");
+		for (int k=0; k<numsSize; k++) {
+			printf("%d%s", nums[k], (k == numsSize - 1) ? "" : ", ");
+		}
+		printf("], target=%d, table_size=%d\n", target, 2*numsSize + 1);
+	#endif
+
 	for (int i=0; i<numsSize; i++) {
 		int complement = target - nums[i];
 		int seen_idx;
 
+		#if defined(DEBUG)
+			printf("  i=%d  nums[i]=%d  complement=%d\n", i, nums[i], complement);
+		#endif
+
 		// first check if complement was stored by a previous iteration
 		if (ht_get(table, complement, &seen_idx)) {
+			#if defined(DEBUG)
+				printf(
+					"    HIT: complement %d found at index %d -> return [%d, %d]\n",
+					complement, seen_idx, seen_idx, i
+				);
+				printf("  Final hash table state:\n");
+				ht_print(table);
+			#endif
 			result[0] = seen_idx;
 			result[1] = i;
 			goto cleanup;
 		}
 
+		#if defined(DEBUG)
+			printf(
+				"    MISS: insert (key=%d, value=%d) into bucket[%d]\n",
+				nums[i], i, (int)((unsigned)nums[i] % (unsigned)table->size)
+			);
+		#endif
 		ht_put(table, nums[i], i);
+
+		#if defined(DEBUG)
+			ht_print(table);
+		#endif
 	}
 
 	free(result);
@@ -179,19 +224,19 @@ int main (
 	void
 ) {
 	int a[] = { 2, 7, 11, 15 };
-	run_test("example 1",                    a, 4, 9,   0, 1);
+	run_test("example 1", a, 4, 9,   0, 1);
 
 	int b[] = { 3, 2, 4 };
-	run_test("example 2 (skip self)",        b, 3, 6,   1, 2);
+	run_test("example 2 (skip self)", b, 3, 6,   1, 2);
 
 	int c[] = { 3, 3 };
 	run_test("example 3 (duplicate values)", c, 2, 6,   0, 1);
 
 	int d[] = { -1000000000, 1000000000, 5, 7 };
-	run_test("large negatives",              d, 4, 0,   0, 1);
+	run_test("large negatives", d, 4, 0,   0, 1);
 
 	int e[] = { 5, 75, 25 };
-	run_test("answer at the end",            e, 3, 100, 1, 2);
+	run_test("answer at the end", e, 3, 100, 1, 2);
 
 	return 0;
 }
