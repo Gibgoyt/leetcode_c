@@ -3,9 +3,9 @@
 # Build / run helper for my_solutions/1/final_solution.c
 #
 # Usage:
-#   ./final_solution.sh --compile   compile the C source into /tmp/leetcode_c_1_final_solution
-#   ./final_solution.sh --debug     compile with -DDEBUG (verbose hash-table traces)
-#   ./final_solution.sh --run       execute the compiled binary
+#   ./final_solution.sh --compile         compile prod/release build into /tmp/leetcode_c_1_final_solution
+#   ./final_solution.sh --compile-debug   compile debug build with -DDEBUG (verbose hash-table traces)
+#   ./final_solution.sh --run             execute the compiled binary
 #
 
 set -euo pipefail
@@ -16,7 +16,7 @@ SRC="${SCRIPT_DIR}/final_solution.c"
 BIN="/tmp/leetcode_c_1_final_solution"
 
 usage() {
-	echo "Usage: $0 --compile | --debug | --run" >&2
+	echo "Usage: $0 --compile | --compile-debug | --run" >&2
 	exit 1
 }
 
@@ -29,7 +29,7 @@ case "$1" in
 		gcc -Wall -Wextra -O2 -g "${SRC}" -o "${BIN}"
 		echo "Compiled: ${BIN}"
 		;;
-	--debug)
+	--compile-debug)
 		gcc -Wall -Wextra -O0 -g -DDEBUG "${SRC}" -o "${BIN}"
 		echo "Compiled (DEBUG): ${BIN}"
 		;;
