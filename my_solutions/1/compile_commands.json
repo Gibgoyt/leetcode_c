@@ -1,0 +1,58 @@
+[
+  {
+    "directory": "/home/user/Projects/C/leetcode_c/my_solutions/1",
+    "file": "/home/user/Projects/C/leetcode_c/my_solutions/1/final_solution.c",
+    "arguments": [
+      "gcc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-c",
+      "final_solution.c"
+    ]
+  },
+  {
+    "directory": "/home/user/Projects/C/leetcode_c/my_solutions/1",
+    "file": "/home/user/Projects/C/leetcode_c/my_solutions/1/nested_loop.c",
+    "arguments": [
+      "gcc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-c",
+      "nested_loop.c"
+    ]
+  },
+  {
+    "directory": "/home/user/Projects/C/leetcode_c/my_solutions/1",
+    "file": "/home/user/Projects/C/leetcode_c/my_solutions/1/understanding_hash_tables.c",
+    "arguments": [
+      "gcc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-c",
+      "understanding_hash_tables.c"
+    ]
+  },
+  {
+    "directory": "/home/user/Projects/C/leetcode_c/my_solutions/1",
+    "file": "/home/user/Projects/C/leetcode_c/my_solutions/1/question.c",
+    "arguments": [
+      "gcc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-g",
+      "-c",
+      "question.c"
+    ]
+  }
+]
