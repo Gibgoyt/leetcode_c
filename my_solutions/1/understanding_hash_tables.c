@@ -83,8 +83,8 @@ int ht_get (
 			*out_value = p->value;
 			return 1;
 		}
-		return 0;
 	}
+	return 0;
 }
 
 void ht_print (
@@ -132,8 +132,37 @@ int main (
 	ht_put(table, 6, 700);
 	ht_put(table, 1, 700);
 	ht_put(table, 2, 700);
-	ht_put(table, 3, 700);
+	ht_put(table, 12, 700);
+
+	printf("After 10 inserts\n");
+	ht_print(table);
+
+	printf("\n\n\n");
+	printf("Overwriting 3->100 key to 105\n");
+	ht_put(table, 3, 105);
+
+	printf("\n\n\n");
+	int v;
+	printf("now doing lookups\n");
+	if (ht_get(table, 10, &v)) {
+		printf("key 10 -> %d\n", v);
+	} else {
+		printf("key 10 miss");
+	}
+
+	if (ht_get(table, 17, &v)) {
+		printf("key 17 -> %d\n", v);
+	} else {
+		printf("key 17 miss\n");
+	}
+
+	if (ht_get(table, 9, &v)) {
+		printf("key 9 -> %d\n", v);
+	} else {
+		printf("key 9 miss\n");
+	}
 
 	ht_print(table);
 	ht_free(table);
+	return 0;
 }
