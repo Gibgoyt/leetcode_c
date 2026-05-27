@@ -4,10 +4,16 @@
 #include <time.h>
 #include <stdint.h>
 
-#define NUM_THREADS 8	// TODO!!: better to -D with nvcc??
-#if !defined(NUM_THREADS)
-	// TODO!!: why the fuck returning error???
-	#error "bitch"
+/*
+ *	TODO answered: yes, '-D' with nvcc works, e.g.
+ *		nvcc -DNUM_THREADS=32 trial_2.cu -o trial_2
+ *	The idiom below means "if not overridden on the command line, default to 8".
+ *	(The previous '#if !defined(NUM_THREADS)' AFTER the '#define' was dead --
+ *	by the time the check ran, the macro was already defined, so #error never
+ *	fired. That's why nothing was "returning error".)
+*/
+#ifndef NUM_THREADS
+	#define NUM_THREADS 8
 #endif
 
 /*
@@ -20,7 +26,7 @@ __device__ uint8_t mix (
 	seed = seed * 1103515245u + 12345u;
 	return (uint8_t)(
 		(
-			((seed >> 16) & 0xFFu) | 
+			((seed >> 16) & 0xFFu) |
 			1u
 		)
 	);
@@ -35,7 +41,6 @@ __device__ uint8_t mix (
 */
 __global__ void hello_kernel (
 	uint8_t cpu_base,
-	const uint8_t *d_cpu_rand,
 	uint8_t *d_gpu_rand,
 	uint16_t *d_sums
 ) {
@@ -48,12 +53,16 @@ __global__ void hello_kernel (
 	*/
 	printf("Hello from GPU, I am thread i=%d from block %d.\n", i, blockIdx.x);
 
-	// mix thread index with CPU per thread random to get GPU random
+	/*
+	 *	mix this thread's index with cpu_base (the single CPU random,
+	 *	broadcast to every thread by value) to get a per-thread GPU random.
+	 *	cpu_base changes each run -> per-thread randoms change each run too.
+	*/
 	uint8_t my_random = mix(
-		(uint32_t)i * 2654435761u ^ d_cpu_rand[i]
+		(uint32_t)i * 2654435761u ^ (uint32_t)cpu_base
 	);
 	d_gpu_rand[i] = my_random;
-	// uint16_t prevent byte overflow on the sum
+	// uint16_t prevents byte overflow on the sum (max 255 + 255 = 510)
 	d_sums[i] = (uint16_t)cpu_base + (uint16_t)my_random;
 }
 
@@ -62,42 +71,26 @@ int main () {
 		(unsigned)time(NULL)
 	);
 
-	// CPU side (base value + per thread randoms)
+	// CPU side: ONE random number, broadcast to every GPU thread
 	uint8_t cpu_number = (uint8_t)(
 		(rand() % 255) + 1
 	);
 	printf("CPU base: %u\n", cpu_number);
 
-	uint8_t h_cpu_rand[NUM_THREADS];
-	for (int i=0; i < NUM_THREADS; i++) {
-		h_cpu_rand[i] = (uint8_t)(
-			(rand() % 255) + 1
-		);
-	}
-
-	// allocate device/GPU buffers
-	uint8_t *d_cpu_rand;
+	// allocate device/GPU buffers (outputs only -- cpu_number rides by value)
 	uint8_t *d_gpu_rand;
 	uint16_t *d_sums;
 
-	cudaMalloc(&d_cpu_rand, NUM_THREADS * sizeof(uint8_t));
 	cudaMalloc(&d_gpu_rand, NUM_THREADS * sizeof(uint8_t));
-
-	cudaMemcpy(
-		d_cpu_rand,
-		h_cpu_rand,
-		NUM_THREADS * sizeof(uint8_t),
-		cudaMemcpyHostToDevice
-	);
+	cudaMalloc(&d_sums,     NUM_THREADS * sizeof(uint16_t));
 
 	/*
 	 *	function<<<numBlocks, threadsPerBlock>>> is the launch config
-	 *	2 blocks * 4 threads per block = 8 GPU threads running the hello_kernel() function in parallel
-	 *	output order not gauranteed as threads race
+	 *	1 block * NUM_THREADS threads = NUM_THREADS GPU threads in parallel
+	 *	output order not guaranteed as threads race
 	*/
 	hello_kernel<<<1, NUM_THREADS>>>(
 		cpu_number,
-		d_cpu_rand,
 		d_gpu_rand,
 		d_sums
 	);
@@ -110,7 +103,6 @@ int main () {
 	cudaDeviceSynchronize();
 
 	// pull results back from GPU
-	
 	uint8_t h_gpu_rand[NUM_THREADS];
 	uint16_t h_sums[NUM_THREADS];
 
@@ -123,21 +115,19 @@ int main () {
 	cudaMemcpy(
 		h_sums,
 		d_sums,
-		NUM_THREADS * sizeof(uint8_t),
+		NUM_THREADS * sizeof(uint16_t),
 		cudaMemcpyDeviceToHost
 	);
 
 	// print everything neatly out
 	for (int i=0; i<NUM_THREADS; i++) {
-		printf("Thread %d, CPU_rand %3u, + GPU_rand %3u = %u\n", i, h_cpu_rand[i], h_gpu_rand[i], h_sums[i]);
+		printf("Thread %d: CPU_base %3u + GPU_rand %3u = %u\n",
+			i, cpu_number, h_gpu_rand[i], h_sums[i]);
 	}
 
-	printf("CPU base %u was passed by value to every thread not shown above\n", cpu_number);
-
 	// clean up device
-	cudaFree(d_cpu_rand);
 	cudaFree(d_gpu_rand);
 	cudaFree(d_sums);
-	
+
 	return 0;
 }
