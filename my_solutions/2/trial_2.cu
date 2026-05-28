@@ -80,7 +80,7 @@ static void print_matrix (
 ) {
 	printf("%s (%dx%d):\n", name, M, N);
 	for (int r=0; r<M; r++) {
-		printf("\t[)");
+		printf("\t[");
 		for (int c=0; c<N; c++) {
 			printf("%8.2f", H[r * N + c]);
 			if (c + 1 < N) {
