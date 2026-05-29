@@ -6,8 +6,8 @@
  *	};
 */
 struct ListNode* addTwoNumbers(
-	struct ListNode* l1, 
-	struct ListNode* l2
+	struct ListNode *l1, 
+	struct ListNode *l2
 ) {
 	// start here
 }
