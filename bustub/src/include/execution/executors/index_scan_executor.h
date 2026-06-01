@@ -21,24 +21,45 @@
 #include "storage/table/tuple.h"
 
 namespace bustub {
-
-/**
- * IndexScanExecutor executes an index scan over a table.
- */
-
-class IndexScanExecutor : public AbstractExecutor {
- public:
-  IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanPlanNode *plan);
-
-  auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); }
-
-  void Init() override;
-
-  auto Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch, size_t batch_size)
-      -> bool override;
-
- private:
-  /** The index scan plan node to be executed. */
-  const IndexScanPlanNode *plan_;
-};
+	/*
+	 *	IndexScanExecutor
+	 *		point range lookup through a secondary index
+	 *
+	 *	mechanically very very similar to SeqScanExecutor:
+	 *		resolve RIDs from the index
+	 *		read each RID from the table heap (with MVCC aware reconstruction)
+	 *		index itself only stores RIDs (not versions), so even a point lookup might need to walk a version chain
+	*/
+	
+	/*
+	 * IndexScanExecutor executes an index scan over a table.
+	*/
+	class IndexScanExecutor : public AbstractExecutor {
+		public:
+			IndexScanExecutor(
+				ExecutorContext *exec_ctx, 
+				const IndexScanPlanNode *plan
+			);
+	
+			auto GetOutputSchema() const -> const Schema & override { 
+				return plan_->OutputSchema(); 
+			}
+	
+			/*
+			 *	reset to the beginning of a matching key range/single key
+			*/
+			void Init() override;
+	
+			auto Next(
+				std::vector<bustub::Tuple> *tuple_batch, 
+				std::vector<bustub::RID> *rid_batch, 
+				size_t batch_size
+			) -> bool override;
+	
+		private:
+			/*
+			 *	The index scan plan node to be executed. 
+			*/
+			const IndexScanPlanNode *plan_;
+	};
 }  // namespace bustub

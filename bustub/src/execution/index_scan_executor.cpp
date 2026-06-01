@@ -14,22 +14,32 @@
 #include "common/macros.h"
 
 namespace bustub {
-
-/**
- * Creates a new index scan executor.
- * @param exec_ctx the executor context
- * @param plan the index scan plan to be executed
- */
-IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanPlanNode *plan)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
-
-void IndexScanExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-auto IndexScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
-                             size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
-
+	/*
+	 *	all these bodies are project 3 (sorting) stubs
+	*/
+	
+	/**
+	 * Creates a new index scan executor.
+	 * @param exec_ctx	- the executor context
+	 * @param plan		- the index scan plan to be executed
+	 */
+	IndexScanExecutor::IndexScanExecutor(
+		ExecutorContext *exec_ctx, 
+		const IndexScanPlanNode *plan
+	) : AbstractExecutor(exec_ctx) {
+		UNIMPLEMENTED("TODO(P3): Add implementation.");
+	}
+	
+	void IndexScanExecutor::Init() { 
+		UNIMPLEMENTED("TODO(P3): Add implementation."); 
+	}
+	
+	auto IndexScanExecutor::Next(
+		std::vector<bustub::Tuple> *tuple_batch, 
+		std::vector<bustub::RID> *rid_batch,
+		size_t batch_size
+	) -> bool {
+		UNIMPLEMENTED("TODO(P3): Add implementation.");
+	}
+	
 }  // namespace bustub
