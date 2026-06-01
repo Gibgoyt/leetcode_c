@@ -1,0 +1,17 @@
+trial_1
+
+# Ignore everything that has no extension (your compiled binaries)
+*
+!*.*
+!*/
+!.gitignore
+
+# incase it does not work
+## Ignore files with no extension (compiled binaries from `gcc file.c -o file`)
+#*
+#!*.c
+#!*.h
+#!*/
+#!.gitignore
+#!Makefile
+#!README*
