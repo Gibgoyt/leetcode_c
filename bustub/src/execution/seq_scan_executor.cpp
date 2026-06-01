@@ -14,29 +14,45 @@
 #include "common/macros.h"
 
 namespace bustub {
-
-/**
- * Construct a new SeqScanExecutor instance.
- * @param exec_ctx The executor context
- * @param plan The sequential scan plan to be executed
- */
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
-
-/** Initialize the sequential scan */
-void SeqScanExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-/**
- * Yield the next tuple batch from the seq scan.
- * @param[out] tuple_batch The next tuple batch produced by the scan
- * @param[out] rid_batch The next tuple RID batch produced by the scan
- * @param batch_size The number of tuples to be included in the batch (default: BUSTUB_BATCH_SIZE)
- * @return `true` if a tuple was produced, `false` if there are no more tuples
- */
-auto SeqScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
-                           size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
-
+	/*
+	 *	all function bodies are currently project 3 stubs
+	 *	when we implement them, this executor is where project 4, task 3 (i.e. MVCC reads)
+	 *	will live for table scans:
+	 *		i.e. each yielded tuple must be reconstructed for the txn's read_ts
+	*/
+	
+	/**
+	 *	 Construct a new SeqScanExecutor instance.
+	 *	 @param exec_ctx The executor context
+	 *	 @param plan The sequential scan plan to be executed
+	*/
+	SeqScanExecutor::SeqScanExecutor(
+		ExecutorContext *	exec_ctx, 
+		const SeqScanPlanNode *	plan
+	) : AbstractExecutor(exec_ctx) {
+		UNIMPLEMENTED("TODO(P3): Add implementation.");
+	}
+	
+	/*
+	 *	Initialize the sequential scan
+	*/
+	void SeqScanExecutor::Init() { 
+		UNIMPLEMENTED("TODO(P3): Add implementation."); 
+	}
+	
+	/*
+	 *	 Yield the next tuple batch from the seq scan.
+	 *	 @param[out] tuple_batch The next tuple batch produced by the scan
+	 *	 @param[out] rid_batch The next tuple RID batch produced by the scan
+	 *	 @param batch_size The number of tuples to be included in the batch (default: BUSTUB_BATCH_SIZE)
+	 *	 @return `true` if a tuple was produced, `false` if there are no more tuples
+	*/
+	auto SeqScanExecutor::Next(
+		std::vector<bustub::Tuple> * tuple_batch, 
+		std::vector<bustub::RID> * rid_batch,
+		size_t batch_size
+	) -> bool {
+		UNIMPLEMENTED("TODO(P3): Add implementation.");
+	}
+	
 }  // namespace bustub
