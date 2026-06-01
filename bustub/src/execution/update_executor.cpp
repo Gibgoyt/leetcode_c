@@ -16,6 +16,9 @@
 #include "execution/executors/update_executor.h"
 
 namespace bustub {
+	/*	project 3 (sorting) stubs
+	 *	project 4 will add MVCC undo generation & write write conflict detection
+	*/
 	
 	/**
 	 *	Construct a new UpdateExecutor instance.

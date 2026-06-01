@@ -21,10 +21,23 @@
 #include "storage/table/tuple.h"
 
 namespace bustub {
+	/*
+	 *	UpdateExecutor
+	 *		DML executor for update
+	 *	
+	 *	MVCC aware update flow (project 4, tasks 3/4)
+	 *		1. read the current base tuple + its undo link head
+	 *		2. detect write-write conflicts
+	 *		   either someone else's tentative or any committed version newer than my read_ts->abort
+	 *		3. if this is the txn's **FIRST** touch of the tuple, then create new UndoLog (GenerateNewUndoLog())
+	 *		   capturing prior values + point to prev undo link head
+	 *		   otherwise, update existing one in place (GenerateUpdatedUndoLog())
+	 *		4. atomically write new base tuple + new undo link
+	*/
 	
 	/**
-	 * UpdateExecutor executes an update on a table.
-	 * Updated values are always pulled from a child.
+	 *	UpdateExecutor executes an update on a table.
+	 *	Updated values are always pulled from a child.
 	 */
 	class UpdateExecutor : public AbstractExecutor {
 		friend class UpdatePlanNode;
