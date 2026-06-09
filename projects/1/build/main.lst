@@ -1,0 +1,209 @@
+ARM GAS  /tmp/ccYiaf68.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"main.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "src/main.c"
+  20              		.section	.text.delay,"ax",%progbits
+  21              		.align	1
+  22              		.global	delay
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	delay:
+  28              	.LFB179:
+   1:src/main.c    **** #include "stm32f4xx.h"
+   2:src/main.c    **** 
+   3:src/main.c    **** // A simple delay function that just spins the CPU.
+   4:src/main.c    **** // It's not perfectly timed, but good enough for a blink loop.
+   5:src/main.c    **** void delay(volatile uint32_t count) {
+  29              		.loc 1 5 37
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 8
+  32              		@ frame_needed = 1, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34 0000 80B4     		push	{r7}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 4
+  37              		.cfi_offset 7, -4
+  38 0002 83B0     		sub	sp, sp, #12
+  39              	.LCFI1:
+  40              		.cfi_def_cfa_offset 16
+  41 0004 00AF     		add	r7, sp, #0
+  42              	.LCFI2:
+  43              		.cfi_def_cfa_register 7
+  44 0006 7860     		str	r0, [r7, #4]
+   6:src/main.c    ****     while (count--) {
+  45              		.loc 1 6 11
+  46 0008 00BF     		nop
+  47              	.L2:
+  48              		.loc 1 6 17 discriminator 1
+  49 000a 7B68     		ldr	r3, [r7, #4]
+  50 000c 5A1E     		subs	r2, r3, #1
+  51 000e 7A60     		str	r2, [r7, #4]
+  52              		.loc 1 6 12 discriminator 1
+ARM GAS  /tmp/ccYiaf68.s 			page 2
+
+
+  53 0010 002B     		cmp	r3, #0
+  54 0012 FAD1     		bne	.L2
+   7:src/main.c    ****         // Do nothing
+   8:src/main.c    ****     }
+   9:src/main.c    **** }
+  55              		.loc 1 9 1
+  56 0014 00BF     		nop
+  57 0016 00BF     		nop
+  58 0018 0C37     		adds	r7, r7, #12
+  59              	.LCFI3:
+  60              		.cfi_def_cfa_offset 4
+  61 001a BD46     		mov	sp, r7
+  62              	.LCFI4:
+  63              		.cfi_def_cfa_register 13
+  64              		@ sp needed
+  65 001c 5DF8047B 		ldr	r7, [sp], #4
+  66              	.LCFI5:
+  67              		.cfi_restore 7
+  68              		.cfi_def_cfa_offset 0
+  69 0020 7047     		bx	lr
+  70              		.cfi_endproc
+  71              	.LFE179:
+  73              		.section	.text.main,"ax",%progbits
+  74              		.align	1
+  75              		.global	main
+  76              		.syntax unified
+  77              		.thumb
+  78              		.thumb_func
+  80              	main:
+  81              	.LFB180:
+  10:src/main.c    **** 
+  11:src/main.c    **** int main(void) {
+  82              		.loc 1 11 16
+  83              		.cfi_startproc
+  84              		@ args = 0, pretend = 0, frame = 0
+  85              		@ frame_needed = 1, uses_anonymous_args = 0
+  86 0000 80B5     		push	{r7, lr}
+  87              	.LCFI6:
+  88              		.cfi_def_cfa_offset 8
+  89              		.cfi_offset 7, -8
+  90              		.cfi_offset 14, -4
+  91 0002 00AF     		add	r7, sp, #0
+  92              	.LCFI7:
+  93              		.cfi_def_cfa_register 7
+  12:src/main.c    ****     // 1. Enable the clock for GPIO Port A
+  13:src/main.c    ****     // The RCC (Reset and Clock Control) manages the clocks.
+  14:src/main.c    ****     // AHB1ENR is the register that controls the clock for GPIO ports.
+  15:src/main.c    ****     // Bit 0 controls GPIOA.
+  16:src/main.c    ****     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+  94              		.loc 1 16 8
+  95 0004 104B     		ldr	r3, .L5
+  96 0006 1B6B     		ldr	r3, [r3, #48]
+  97 0008 0F4A     		ldr	r2, .L5
+  98              		.loc 1 16 18
+  99 000a 43F00103 		orr	r3, r3, #1
+ 100 000e 1363     		str	r3, [r2, #48]
+  17:src/main.c    **** 
+ARM GAS  /tmp/ccYiaf68.s 			page 3
+
+
+  18:src/main.c    ****     // 2. Configure PA5 as a General Purpose Output
+  19:src/main.c    ****     // The MODER register controls the mode of the pins.
+  20:src/main.c    ****     // Pin 5 mode is controlled by bits 10 and 11.
+  21:src/main.c    ****     // We want output mode, which is "01".
+  22:src/main.c    ****     // First, clear the bits for pin 5
+  23:src/main.c    ****     GPIOA->MODER &= ~GPIO_MODER_MODER5_Msk; 
+ 101              		.loc 1 23 10
+ 102 0010 0E4B     		ldr	r3, .L5+4
+ 103 0012 1B68     		ldr	r3, [r3]
+ 104 0014 0D4A     		ldr	r2, .L5+4
+ 105              		.loc 1 23 18
+ 106 0016 23F44063 		bic	r3, r3, #3072
+ 107 001a 1360     		str	r3, [r2]
+  24:src/main.c    ****     // Then set the correct mode
+  25:src/main.c    ****     GPIOA->MODER |= GPIO_MODER_MODER5_0;    
+ 108              		.loc 1 25 10
+ 109 001c 0B4B     		ldr	r3, .L5+4
+ 110 001e 1B68     		ldr	r3, [r3]
+ 111 0020 0A4A     		ldr	r2, .L5+4
+ 112              		.loc 1 25 18
+ 113 0022 43F48063 		orr	r3, r3, #1024
+ 114 0026 1360     		str	r3, [r2]
+ 115              	.L4:
+  26:src/main.c    **** 
+  27:src/main.c    ****     // Endless loop where our embedded program lives forever
+  28:src/main.c    ****     while (1) {
+  29:src/main.c    ****         // 3. Turn the LED ON
+  30:src/main.c    ****         // BSRR is the Bit Set/Reset Register.
+  31:src/main.c    ****         // Writing to the lower 16 bits SETS the pin high.
+  32:src/main.c    ****         GPIOA->BSRR = GPIO_BSRR_BS_5;
+ 116              		.loc 1 32 14
+ 117 0028 084B     		ldr	r3, .L5+4
+ 118              		.loc 1 32 21
+ 119 002a 2022     		movs	r2, #32
+ 120 002c 9A61     		str	r2, [r3, #24]
+  33:src/main.c    **** 
+  34:src/main.c    ****         delay(10000000); // Wait
+ 121              		.loc 1 34 9
+ 122 002e 0848     		ldr	r0, .L5+8
+ 123 0030 FFF7FEFF 		bl	delay
+  35:src/main.c    **** 
+  36:src/main.c    ****         // 4. Turn the LED OFF
+  37:src/main.c    ****         // Writing to the upper 16 bits (BS_5 shifted by 16) RESETS the pin low.
+  38:src/main.c    ****         GPIOA->BSRR = GPIO_BSRR_BR_5;
+ 124              		.loc 1 38 14
+ 125 0034 054B     		ldr	r3, .L5+4
+ 126              		.loc 1 38 21
+ 127 0036 4FF40012 		mov	r2, #2097152
+ 128 003a 9A61     		str	r2, [r3, #24]
+  39:src/main.c    **** 
+  40:src/main.c    ****         delay(10000000); // Wait
+ 129              		.loc 1 40 9 discriminator 1
+ 130 003c 0448     		ldr	r0, .L5+8
+ 131 003e FFF7FEFF 		bl	delay
+  32:src/main.c    **** 
+ 132              		.loc 1 32 21
+ 133 0042 00BF     		nop
+ARM GAS  /tmp/ccYiaf68.s 			page 4
+
+
+ 134 0044 F0E7     		b	.L4
+ 135              	.L6:
+ 136 0046 00BF     		.align	2
+ 137              	.L5:
+ 138 0048 00380240 		.word	1073887232
+ 139 004c 00000240 		.word	1073872896
+ 140 0050 80969800 		.word	10000000
+ 141              		.cfi_endproc
+ 142              	.LFE180:
+ 144              		.text
+ 145              	.Letext0:
+ 146              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 147              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 148              		.file 4 "include/stm32f401xe.h"
+ARM GAS  /tmp/ccYiaf68.s 			page 5
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 main.c
+     /tmp/ccYiaf68.s:21     .text.delay:00000000 $t
+     /tmp/ccYiaf68.s:27     .text.delay:00000000 delay
+     /tmp/ccYiaf68.s:74     .text.main:00000000 $t
+     /tmp/ccYiaf68.s:80     .text.main:00000000 main
+     /tmp/ccYiaf68.s:138    .text.main:00000048 $d
+
+NO UNDEFINED SYMBOLS
