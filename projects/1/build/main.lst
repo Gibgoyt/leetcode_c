@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccYiaf68.s 			page 1
+ARM GAS  /tmp/ccKmzQRw.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -28,7 +28,7 @@ ARM GAS  /tmp/ccYiaf68.s 			page 1
   25              		.thumb_func
   27              	delay:
   28              	.LFB179:
-   1:src/main.c    **** #include "stm32f4xx.h"
+   1:src/main.c    **** #include <stm32f4xx.h>
    2:src/main.c    **** 
    3:src/main.c    **** // A simple delay function that just spins the CPU.
    4:src/main.c    **** // It's not perfectly timed, but good enough for a blink loop.
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccYiaf68.s 			page 1
   50 000c 5A1E     		subs	r2, r3, #1
   51 000e 7A60     		str	r2, [r7, #4]
   52              		.loc 1 6 12 discriminator 1
-ARM GAS  /tmp/ccYiaf68.s 			page 2
+ARM GAS  /tmp/ccKmzQRw.s 			page 2
 
 
   53 0010 002B     		cmp	r3, #0
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccYiaf68.s 			page 1
   99 000a 43F00103 		orr	r3, r3, #1
  100 000e 1363     		str	r3, [r2, #48]
   17:src/main.c    **** 
-ARM GAS  /tmp/ccYiaf68.s 			page 3
+ARM GAS  /tmp/ccKmzQRw.s 			page 3
 
 
   18:src/main.c    ****     // 2. Configure PA5 as a General Purpose Output
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccYiaf68.s 			page 1
   32:src/main.c    **** 
  132              		.loc 1 32 21
  133 0042 00BF     		nop
-ARM GAS  /tmp/ccYiaf68.s 			page 4
+ARM GAS  /tmp/ccKmzQRw.s 			page 4
 
 
  134 0044 F0E7     		b	.L4
@@ -194,16 +194,16 @@ ARM GAS  /tmp/ccYiaf68.s 			page 1
  145              	.Letext0:
  146              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
  147              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
- 148              		.file 4 "include/stm32f401xe.h"
-ARM GAS  /tmp/ccYiaf68.s 			page 5
+ 148              		.file 4 "../../include/cortex_m4/stm32f401xe.h"
+ARM GAS  /tmp/ccKmzQRw.s 			page 5
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 main.c
-     /tmp/ccYiaf68.s:21     .text.delay:00000000 $t
-     /tmp/ccYiaf68.s:27     .text.delay:00000000 delay
-     /tmp/ccYiaf68.s:74     .text.main:00000000 $t
-     /tmp/ccYiaf68.s:80     .text.main:00000000 main
-     /tmp/ccYiaf68.s:138    .text.main:00000048 $d
+     /tmp/ccKmzQRw.s:21     .text.delay:00000000 $t
+     /tmp/ccKmzQRw.s:27     .text.delay:00000000 delay
+     /tmp/ccKmzQRw.s:74     .text.main:00000000 $t
+     /tmp/ccKmzQRw.s:80     .text.main:00000000 main
+     /tmp/ccKmzQRw.s:138    .text.main:00000048 $d
 
 NO UNDEFINED SYMBOLS

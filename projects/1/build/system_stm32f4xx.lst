@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccOjVb7V.s 			page 1
+ARM GAS  /tmp/ccq7WXlw.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
    8:src/system_stm32f4xx.c ****   *   user application:
    9:src/system_stm32f4xx.c ****   *      - SystemInit(): This function is called at startup just after reset and 
   10:src/system_stm32f4xx.c ****   *                      before branch to main program. This call is made inside
-ARM GAS  /tmp/ccOjVb7V.s 			page 2
+ARM GAS  /tmp/ccq7WXlw.s 			page 2
 
 
   11:src/system_stm32f4xx.c ****   *                      the "startup_stm32f4xx.s" file.
@@ -98,7 +98,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
   45:src/system_stm32f4xx.c ****   */
   46:src/system_stm32f4xx.c **** 
   47:src/system_stm32f4xx.c **** 
-  48:src/system_stm32f4xx.c **** #include "stm32f4xx.h"
+  48:src/system_stm32f4xx.c **** #include <stm32f4xx.h>
   49:src/system_stm32f4xx.c **** 
   50:src/system_stm32f4xx.c **** #if !defined  (HSE_VALUE) 
   51:src/system_stm32f4xx.c ****   #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
   65:src/system_stm32f4xx.c **** 
   66:src/system_stm32f4xx.c **** /**
   67:src/system_stm32f4xx.c ****   * @}
-ARM GAS  /tmp/ccOjVb7V.s 			page 3
+ARM GAS  /tmp/ccq7WXlw.s 			page 3
 
 
   68:src/system_stm32f4xx.c ****   */
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  122:src/system_stm32f4xx.c **** /**
  123:src/system_stm32f4xx.c ****   * @}
  124:src/system_stm32f4xx.c ****   */
-ARM GAS  /tmp/ccOjVb7V.s 			page 4
+ARM GAS  /tmp/ccq7WXlw.s 			page 4
 
 
  125:src/system_stm32f4xx.c **** 
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
   61              	.LCFI1:
   62              		.cfi_def_cfa_register 7
  169:src/system_stm32f4xx.c ****   /* FPU settings ------------------------------------------------------------*/
-ARM GAS  /tmp/ccOjVb7V.s 			page 5
+ARM GAS  /tmp/ccq7WXlw.s 			page 5
 
 
  170:src/system_stm32f4xx.c ****   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  192:src/system_stm32f4xx.c ****   *         based on this variable will be incorrect.         
  193:src/system_stm32f4xx.c ****   *     
  194:src/system_stm32f4xx.c ****   * @note   - The system frequency computed by this function is not the real 
-ARM GAS  /tmp/ccOjVb7V.s 			page 6
+ARM GAS  /tmp/ccq7WXlw.s 			page 6
 
 
  195:src/system_stm32f4xx.c ****   *           frequency in the chip. It is calculated based on the predefined 
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  118              		.loc 1 227 3
  119 0010 3B69     		ldr	r3, [r7, #16]
  120 0012 082B     		cmp	r3, #8
-ARM GAS  /tmp/ccOjVb7V.s 			page 7
+ARM GAS  /tmp/ccq7WXlw.s 			page 7
 
 
  121 0014 11D0     		beq	.L5
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  242:src/system_stm32f4xx.c ****       
  243:src/system_stm32f4xx.c ****       if (pllsource != 0)
  161              		.loc 1 243 10
-ARM GAS  /tmp/ccOjVb7V.s 			page 8
+ARM GAS  /tmp/ccq7WXlw.s 			page 8
 
 
  162 0050 FB68     		ldr	r3, [r7, #12]
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  255:src/system_stm32f4xx.c ****       SystemCoreClock = pllvco/pllp;
  205              		.loc 1 255 31
  206 0098 7A69     		ldr	r2, [r7, #20]
-ARM GAS  /tmp/ccOjVb7V.s 			page 9
+ARM GAS  /tmp/ccq7WXlw.s 			page 9
 
 
  207 009a 7B68     		ldr	r3, [r7, #4]
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  250              	.LCFI9:
  251              		.cfi_restore 7
  252              		.cfi_def_cfa_offset 0
-ARM GAS  /tmp/ccOjVb7V.s 			page 10
+ARM GAS  /tmp/ccq7WXlw.s 			page 10
 
 
  253 00d6 7047     		bx	lr
@@ -556,25 +556,25 @@ ARM GAS  /tmp/ccOjVb7V.s 			page 1
  266              	.Letext0:
  267              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
  268              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
- 269              		.file 4 "include/core_cm4.h"
- 270              		.file 5 "include/system_stm32f4xx.h"
- 271              		.file 6 "include/stm32f401xe.h"
-ARM GAS  /tmp/ccOjVb7V.s 			page 11
+ 269              		.file 4 "../../include/cortex_m4/core_cm4.h"
+ 270              		.file 5 "../../include/cortex_m4/system_stm32f4xx.h"
+ 271              		.file 6 "../../include/cortex_m4/stm32f401xe.h"
+ARM GAS  /tmp/ccq7WXlw.s 			page 11
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 system_stm32f4xx.c
-     /tmp/ccOjVb7V.s:25     .data.SystemCoreClock:00000000 SystemCoreClock
-     /tmp/ccOjVb7V.s:22     .data.SystemCoreClock:00000000 $d
-     /tmp/ccOjVb7V.s:32     .rodata.AHBPrescTable:00000000 AHBPrescTable
-     /tmp/ccOjVb7V.s:29     .rodata.AHBPrescTable:00000000 $d
-     /tmp/ccOjVb7V.s:40     .rodata.APBPrescTable:00000000 APBPrescTable
-     /tmp/ccOjVb7V.s:37     .rodata.APBPrescTable:00000000 $d
-     /tmp/ccOjVb7V.s:43     .text.SystemInit:00000000 $t
-     /tmp/ccOjVb7V.s:49     .text.SystemInit:00000000 SystemInit
-     /tmp/ccOjVb7V.s:84     .text.SystemInit:00000020 $d
-     /tmp/ccOjVb7V.s:89     .text.SystemCoreClockUpdate:00000000 $t
-     /tmp/ccOjVb7V.s:95     .text.SystemCoreClockUpdate:00000000 SystemCoreClockUpdate
-     /tmp/ccOjVb7V.s:257    .text.SystemCoreClockUpdate:000000d8 $d
+     /tmp/ccq7WXlw.s:25     .data.SystemCoreClock:00000000 SystemCoreClock
+     /tmp/ccq7WXlw.s:22     .data.SystemCoreClock:00000000 $d
+     /tmp/ccq7WXlw.s:32     .rodata.AHBPrescTable:00000000 AHBPrescTable
+     /tmp/ccq7WXlw.s:29     .rodata.AHBPrescTable:00000000 $d
+     /tmp/ccq7WXlw.s:40     .rodata.APBPrescTable:00000000 APBPrescTable
+     /tmp/ccq7WXlw.s:37     .rodata.APBPrescTable:00000000 $d
+     /tmp/ccq7WXlw.s:43     .text.SystemInit:00000000 $t
+     /tmp/ccq7WXlw.s:49     .text.SystemInit:00000000 SystemInit
+     /tmp/ccq7WXlw.s:84     .text.SystemInit:00000020 $d
+     /tmp/ccq7WXlw.s:89     .text.SystemCoreClockUpdate:00000000 $t
+     /tmp/ccq7WXlw.s:95     .text.SystemCoreClockUpdate:00000000 SystemCoreClockUpdate
+     /tmp/ccq7WXlw.s:257    .text.SystemCoreClockUpdate:000000d8 $d
 
 NO UNDEFINED SYMBOLS
