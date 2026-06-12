@@ -216,26 +216,140 @@ namespace bustub {
 			const BPlusTreeInternalPage &other
 		) = delete;
 	
-		 void Init(int max_size = INTERNAL_PAGE_SLOT_CNT);
+		 /*
+		  *	@brief		- manual ctor
+		  *			  call exactly once per page lifetime
+		  *
+		  *	@param max_size	- capacity
+		  *			  defaults to INTERNAL_PAGE_SLOT_CNT
+		  *
+		  *	called by B+Tree (project 2, task 2) 
+		  *	immediately after fetching a new page from BPM and reinterpret_cast() on it, this function sets:
+		  *		- page_type_ 	= INTERNAL_PAGE
+		  *		- size_		= 0
+		  *		- max_size_	= max_size
+		  *	does *NOT* touch key_array_[]/page_id_array_[] as their contents remain undefined until they are written
+		  *
+		  *	Note:
+		  *		size_ starts at 0 here
+		  *		but, in practice, an internal page is never observed with size_ == 0 by tree code
+		  *		a newly created internal page
+		  *			i.e. a new root after split
+		  *			is immediately updated with 1 child ptr (size_ = 1)
+		  *			or 2 child ptrs + 1 real key (size_ = 2)
+		  *		'size_ == 0' is a transient state that exists only between Init() and SetValueAt()/SetKeyAt()
+		  *		during that post-split fixup
+		*/
+		 void Init(
+			int max_size = INTERNAL_PAGE_SLOT_CNT
+		);
 	
-		 auto KeyAt(int index) const -> KeyType;
+		 /*
+		  *	@brief		- routing key at slot 'index'
+		  *	@param index	- 0-based slot index
+		  *			  *MUST* be > 0
+		  *			  i.e. index's '0' key is INVALID sentinel
+		  *	
+		  *	@return		- KeyType at key_array_[index]
+		  *
+		  *	.../project_2/README.md "§Internal Page" is explicit:
+		  *		"the first key in key_array_[] is set to be invalid, and lookups should always start from the second key"
+		  *		every caller iterating keys should start at i=1, not i=0
+		  *
+		  *	why the sentinel exists??
+		  *		having key_array_[]/page_id_array_[] shares the same length and index alignment
+		  *		slot 'i' holds both the key and page_id for subtree to the *RIGHT* of the key, letting us:
+		  *			- keep size_ semantically meaningful as "no. of child ptrs"
+		  *			- shift-insert/shift-delete keys/pointers in lockstep without indexing gefuffling
+		  *			- avoid extra "leading ptr" field
+		  *		the cost is having one extra KeyType field per page (i.e. the invalid slot 0 key)
+		  *		this is negligable on 8192 BUSTUB_PAGE_SIZE
+		  *
+		  *	caller contract/responsibility:
+		  *		- 0 < index < GetSize()
+		  *		- TODO!!: a reasonable defensive implementation
+		*/
+		 auto KeyAt(
+			int index
+		) const -> KeyType;
 	
-		 void SetKeyAt(int index, const KeyType &key);
+		 /*
+		  *	@brief		- write the routing key at slot 'index'
+		  *	@param index	- 0-based slot index
+		  *			  must be > 0
+		  *	@param key	- new key value
+		  *
+		  *	called heavily by split/merge/redistribute project 2, task 2
+		  *		when a child's MIN/MAX boundary changes
+		  *		e.g. after a leaf split, the parent gets a new key, separating the old leaf from the new sibling
+		  *		the parent updates the corresponding routing key here
+		  *
+		  *	caller contract/responsibilty:
+		  *		- 0 < index < GetSize()
+		  *		- caller is resposible for maintaining the sorted key order across the array
+		*/
+		 void SetKeyAt(
+			int index, 
+			const KeyType &key
+		);
 	
 		 /**
-			* @param value The value to search for
-			* @return The index that corresponds to the specified value
-			*/
-		 auto ValueIndex(const ValueType &value) const -> int;
+		 * @param value The value to search for
+		 * @return The index that corresponds to the specified value
+		 *
+		 *	@brief		- find the slot whose page_id_array_[i] == value
+		 *	@return		- index 'i' OR -1 OR size_ if not found
+		 *
+		 *	used by parent side book-keeping when a child wants to look up its own position in the parent's ptr array
+		 *	e.g. to find a sibline or redistribute/merge
+		 *	implementation must linearly scan page_id_array_[0..(size-1)] for the matching page_id
+		 *	
+		 *	caller contract/responsibility:
+		 *		value is presumed to actually be present
+		 *		if "not found" return a defensive sentinel
+		 *		in project 2, task 2
+		 *			acts on the result of calling this, assert ```i != -1``` is a reasonable defensive implementation
+		 *	 
+		 *	performance:
+		 *		O(size_)
+		 *		binary search is not possible because values (i.e. page_ids) are not sorted in any meaningful way
+		 *		routing keys *ARE* sorted, but page_id alongside is whatever the BP happened to have handed out
+		*/
+		 auto ValueIndex(
+			const ValueType &value
+		) const -> int;
 	
-		 auto ValueAt(int index) const -> ValueType;
+		 /*
+		  *	@brief		- child 'page_id' at slot 'index'
+		  *	@param index	- 0-based slot index
+		  *			  0 <= index < GetSize()
+		  *	@return		- ValueType/page_id_t for internal poge
+		  *			  at page_id_array_[index]
+		  *
+		  *	where KeyAt(0) is invalid, ValueAt(0) is valid
+		  *	i.e. the left most child ptr is always valid
+		  *	every slot 0..(size-1) corresponds to a real subtree
+		  *
+		  *	used during tree descent
+		  *		given a routing decision for key X
+		  *		descent code computes the correct slot index i and then descends into bpm_->ReadPage(ValueAt(i))
+		*/
+		 auto ValueAt(
+			int index
+		) const -> ValueType;
 	
-		 /**
-			* @brief For test only, return a string representing all keys in
-			* this internal page, formatted as "(key1,key2,key3,...)"
-			*
-			* @return The string representation of all keys in the current internal page
-			*/
+		 /*
+		 * @brief For test only, return a string representing all keys in
+		 * this internal page, formatted as "(key1,key2,key3,...)"
+		 *
+		 * @return The string representation of all keys in the current internal page
+		 *	
+		 *	skips slot 0 (i.e. the invalid sentinel)
+		 *	```for (int i = 1; ...)``` starting index
+		 *	output is the same comma separated format that the visualize expects
+		 *	defined inline so that it will work wihout a *.cpp implementation
+		 *	mirrors BPlusTreeLeafPage::ToString(), but wihtout tombstoned keys prefix
+		*/
 		 auto ToString() const -> std::string {
 			 std::string kstr = "(";
 			 bool first = true;
@@ -257,10 +371,42 @@ namespace bustub {
 		 }
 	
 		private:
-		 // Array members for page data.
+		 /*
+		  *	@brief		- sorted array of routing keys
+		  *	
+		  *	slot 0 is INVALID sentinel, its contents are undefined and must never be read
+		  *	slots 1..(size - 1) are valid routing keys, kept in ascending order at all times (i.e. under the supplied KeyComparator)
+		  *	project 2's "§Requirments and Hints" recommends binary search for lookup
+		  *		performance adjacent correctness, else requires timeouts
+		  *
+		  *	capacity is INTERNAL_PAGE_SLOT_CNT
+		  *	only the first size_ slots are live
+		  *	project 2, README outlines "§Common Pitfalls"
+		  *		"do not modify size or type of this array"
+		  *		the autograder depends on the exact byte layout
+		*/
 		 KeyType key_array_[INTERNAL_PAGE_SLOT_CNT];
+
+		 /*
+		  *	@brief		- parallel array of child page IDs
+		  *
+		  *	slot i, where i (0 <= i < size_) holds the page_id of the subtree that satisfies:
+		  *		KeyAt(i) <= K < KeyAt(i+1)
+		  *	KeyAt(0) treated as -infinity, KetAt(size_) treated as +infinity
+		  *
+		  *	ValueType is always ```page_id_t``` for internal pages
+		  *	@see ```template class BPlusTreeInternalPage<..., page_id_t, ...>``` at the bottom of b_plus_tree_internal_page.cpp
+		  *	i.e. not template variant that uses an other ValueType
+		*/
 		 ValueType page_id_array_[INTERNAL_PAGE_SLOT_CNT];
-		 // (Spring 2025) Feel free to add more fields and helper functions below if needed
+
+		 /*
+		  *	(Spring 2025) Feel free to add more fields and helper functions below if needed
+		  *
+		  *	Same trivially-constructible-only rule as for the leaf page
+		  *	@see leaf-page header for details b_plus_tree_leaf_page.h
+		  *	In practice internal pages need NO (for project 2, task 1)
+		*/
 	};
 	
 }  // namespace bustub
