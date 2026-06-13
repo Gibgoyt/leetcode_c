@@ -1,3 +1,13 @@
+# I'm in plan mode — I can only read and analyze, not modify. Let me examine RID.h thoroughly along...
+
+**Session ID:** ses_1406f60b7ffeN7QN0pMCzwv2XZ
+**Created:** 6/13/2026, 7:59:46 AM
+**Updated:** 6/13/2026, 8:02:46 AM
+
+---
+
+## User
+
 # Disk Scheduler Task 2 requirements
 
 **Session ID:** ses_15e8fe28bffesApF1yLM3xJeG2
@@ -11482,6 +11492,1781 @@ When you're ready to come back, the natural next files are:
 1. `bustub/src/include/common/rid.h` (you mentioned wanting to defer it; small and self-contained whenever you want it)
 2. `bustub/src/include/storage/page/b_plus_tree_header_page.h` (32-line trivial header, Task 2 territory but cleanest place to start Task 2)
 3. Then jump into Task 2 proper: `b_plus_tree.h` + `b_plus_tree.cpp` (the heavyweight Insert/Delete/GetValue + Context class)
+
+--- 
+
+## user
+
+Awesome! Now please extremely thoroughly examine the following files:
+
+./bustub/src/include/storage/page/b_plus_tree_internal_page.h
+./bustub/src/include/storage/page/b_plus_tree_leaf_page.h
+./bustub/src/include/storage/page/b_plus_tree_page.h
+./bustub/src/storage/page/b_plus_tree_internal_page.cpp
+./bustub/src/storage/page/b_plus_tree_leaf_page.cpp
+./bustub/src/storage/page/b_plus_tree_page.cpp
+./bustub/src/include/common/rid.h
+
+Let's please add docs/comments to ./bustub/src/include/common/rid.h 
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 9.0s)
+
+Reading all the files in parallel now.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/common/rid.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/common/rid.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // rid.h
+6: //
+7: // Identification: src/include/common/rid.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include <cstdint>
+16: #include <sstream>
+17: #include <string>
+18: 
+19: #include "common/config.h"
+20: 
+21: namespace bustub {
+22: 
+23: class RID {
+24:  public:
+25:   /** The default constructor creates an invalid RID! */
+26:   RID() = default;
+27: 
+28:   /**
+29:    * Creates a new Record Identifier for the given page identifier and slot number.
+30:    * @param page_id page identifier
+31:    * @param slot_num slot number
+32:    */
+33:   RID(page_id_t page_id, uint32_t slot_num) : page_id_(page_id), slot_num_(slot_num) {}
+34: 
+35:   explicit RID(int64_t rid) : page_id_(static_cast<page_id_t>(rid >> 32)), slot_num_(static_cast<uint32_t>(rid)) {}
+36: 
+37:   inline auto Get() const -> int64_t { return (static_cast<int64_t>(page_id_)) << 32 | slot_num_; }
+38: 
+39:   inline auto GetPageId() const -> page_id_t { return page_id_; }
+40: 
+41:   inline auto GetSlotNum() const -> uint32_t { return slot_num_; }
+42: 
+43:   inline void Set(page_id_t page_id, uint32_t slot_num) {
+44:     page_id_ = page_id;
+45:     slot_num_ = slot_num;
+46:   }
+47: 
+48:   inline auto ToString() const -> std::string {
+49:     std::stringstream os;
+50:     os << "page_id: " << page_id_;
+51:     os << " slot_num: " << slot_num_ << "\n";
+52: 
+53:     return os.str();
+54:   }
+55: 
+56:   friend auto operator<<(std::ostream &os, const RID &rid) -> std::ostream & {
+57:     os << rid.ToString();
+58:     return os;
+59:   }
+60: 
+61:   auto operator==(const RID &other) const -> bool { return page_id_ == other.page_id_ && slot_num_ == other.slot_num_; }
+62: 
+63:  private:
+64:   page_id_t page_id_{INVALID_PAGE_ID};
+65:   uint32_t slot_num_{0};  // logical offset from 0, 1...
+66: };
+67: 
+68: }  // namespace bustub
+69: 
+70: namespace std {
+71: template <>
+72: struct hash<bustub::RID> {
+73:   auto operator()(const bustub::RID &obj) const -> size_t { return hash<int64_t>()(obj.Get()); }
+74: };
+75: }  // namespace std
+
+(End of file - total 75 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_page.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_page.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree_page.h
+6: //
+7: // Identification: src/include/storage/page/b_plus_tree_page.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include <cassert>
+16: #include <climits>
+17: #include <cstdlib>
+18: #include <string>
+19: 
+20: #include "buffer/buffer_pool_manager.h"
+21: #include "storage/index/generic_key.h"
+22: 
+23: namespace bustub {
+24: 	/*
+25: 	 *	B+tree
+26: 	 *	project 2, task 1
+27: 	 *
+28: 	 *	BPlusTreePage{} is a common header included by both leaf pages and internal B+tree pages
+29: 	 *	it is *NEVER* instantiated on its own
+30: 	 *	both BPlusTreeLeafPage{} and BPlusTreeInternalPage{} inherit from it, overlaying additional fields on top of it
+31: 	 *
+32: 	 *	the "page is the buffer" pattern:
+33: 	 *		B+ tree is *NOT* a heap object
+34: 	 *		BPM hands us a buffer of size BUSTUB_PAGE_SIZE (i.e. FrameHeader::data_)
+35: 	 *		we reinterpret_cast that buffer into a BBlusTreePage*
+36: 	 *		the class here is therefore a memory layout template overlaid on the raw bytes from the buffer, not a normal C++ object
+37: 	 *		
+38: 	 *		- BPlusTreePage() = delete	- no ctor will ever run on these bytes
+39: 	 *		- BPlusTreePage(const&) = delete	- no copy either
+40: 	 *		- ~BPlusTreePage() = delete	- no dtor
+41: 	 *						  i.e. BPM owns the bytes
+42: 	 *		- Init(max_size)		- manual "ctor"
+43: 	 *						  called by BPM consumer after the cast
+44: 	 *
+45: 	 *	consequences when implementing project 2, task 1
+46: 	 *	i.e. .../project_2/README.md "§Common Pitfalls" section
+47: 	 *		- only add fields of TRIVIALLY-CONSTRUCTIBLE types
+48: 	 *		  int, size_t
+49: 	 *		  fixed-size arrays of trivial types
+50: 	 *		  plain enums
+51: 	 *		- no std::vector, std::string, std::unique_ptr, std::optional, std::shared_mutex
+52: 	 *		  or any field with a non-trivial ctor/dtor/vptor
+53: 	 *		  internal heap pointers / vtable pointers would not survive an eviction + fault-in round trip
+54: 	 *		- *DO NOT* modify key_array_/value_array_ in the derived classes
+55: 	 *		  its inline sizes are part of on-disk layout contract
+56: 	 *
+57: 	 *	header layout:
+58: 	 *	12 bytes total (i.e. INTERNAL_PAGE_HEADER_SIZE)
+59: 	 *	because internal page does not add anything beyond the base
+60: 	 *		TODO!!: proper diagram explaining the memory layout here with rectangle box stuff
+61: 	 *		offset 0	: page_type_	(int, 4 bytes)
+62: 	 *				  INDEX_PAGE_TYPE (INVALID, LEAF, INTERNAL)
+63: 	 *		offset 4	: size_		(int, 4 bytes)
+64: 	 *				  no. of key/value slots currently used
+65: 	 *		offset 8	: max_size_	(int, 4 bytes)
+66: 	 *				  capacity of the page (i.e. slot count)
+67: 	 *		offset 12	: <derived class field starts here>
+68: 	 *
+69: 	 *	internal page (i.e. BPlusTreeInternalPage{}) extends this with key_array_ + page_id_array_
+70: 	 *	leaf page (i.e. BPlusTreeLeafPage{}) extends this with:
+71: 	 *		next_page_id_, num_tombstones_, tombstones_[]
+72: 	 *		key_array_, rid_array_
+73: 	 *		header grows to 16 bytes for next_page_id_ field
+74: 	 *
+75: 	 *	templates:
+76: 	 *		- INDEX_TEMPLATE_ARGUMENTS
+77: 	 *		  3 params:
+78: 	 *		  	- KeyType
+79: 	 *		  	- ValueType
+80: 	 *		  	- KeyComparator
+81: 	 *		  used by INTERNAL page
+82: 	 *		  no NumTombs needed, since internal pages have no tombstones
+83: 	 *		- FULL_INDEX_TEMPLATE_ARUMENTS
+84: 	 *		  4 params:
+85: 	 *		  	- KeyType
+86: 	 *		  	- ValueType
+87: 	 *		  	- KeyComparator
+88: 	 *		  	- NumTombs
+89: 	 *		  used by LEAF page, IndexIterator, and BPlusTree itself
+90: 	 *		  no defaults on NumTombs (i.e. the user must supply it)
+91: 	 *		- FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
+92: 	 *		  same as FULL_INDEX_TEMPLATE_ARGUMENTS but supplies a default NumTombs = 0
+93: 	 *		  used when DECLARING a class for the first time, so the default is in scope
+94: 	 *		  subsequent template instantiation must *NOT* redeclare the default (i.e. this is a C++ rule)
+95: 	 *		  	i.e. they use non-defn form
+96: 	 *
+97: 	 *	MappingType macro:
+98: 	 *		std::pair<KeyType, ValueType>
+99: 	 *		conventional short-hand used by code that wants to talk about "one B+tree slot"
+100: 	 *		without referring to key_array_[i] and value_array_[i] separately
+101: 	 *		mostly appears in signatures returning a single key/value pair
+102: 	 *
+103: 	 *	BPlusTreePage{} invariants:
+104: 	 *		1. every page is either LEAF_PAGE or INTERNAL_PAGE after Init()
+105: 	 *		   INVALID_INDEX_PAGE is the pre-Init() sentinel
+106: 	 *		2. 0 <= size_ <= max_size_
+107: 	 *		   at all times
+108: 	 *		3. non-root pages must satisfy MinSize() <= size_
+109: 	 *		   "at least half" rule specified at .../project_2/README.md
+110: 	 *		   the root is the only legal under full page
+111: 	 *		4. split decision uses size_ vs. max_size_
+112: 	 *		   merge/redistribute decision uses size_ vs. MinSize()
+113: 	*/
+114: 	
+115: 	/*
+116: 	 *	@brief		- one B+Tree slot's worth of key/value
+117: 	 *
+118: 	 *	convenience macro used wherever code needs to pass/return a single key/value pair
+119: 	 *	without referring to parallel arrays explicitly
+120: 	 *	KeyType/ValueType, are the surrounding template params
+121: 	*/
+122: 	#define MappingType std::pair<KeyType, ValueType>
+123: 	
+124: 	/*
+125: 	 *	template parameter macros
+126: 	 *	@see file-level rationale above to decide which to use when
+127: 	 *
+128: 	 *		FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN	- declares NumTombs with default (i.e. 0)
+129: 	 *		FULL_INDEX_TEMPLATE_ARGUMENTS		- declares NumTombs without default
+130: 	 *		INDEX_TEMPLATE_ARGUMENTS		- no NumTombs at all
+131: 	 *							  internal page
+132: 	 *
+133: 	*/
+134: 	#define FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN \
+135: 			template <typename KeyType, typename ValueType, typename KeyComparator, ssize_t NumTombs = 0>
+136: 	#define FULL_INDEX_TEMPLATE_ARGUMENTS \
+137: 			template <typename KeyType, typename ValueType, typename KeyComparator, ssize_t NumTombs>
+138: 	#define INDEX_TEMPLATE_ARGUMENTS template <typename KeyType, typename ValueType, typename KeyComparator>
+139: 	
+140: 	/*
+141: 	 *	@brief		- the 3 possible values of BPlusTreePage::page_type_
+142: 	 *
+143: 	 *		INVALID_INDEX_PAGE	- the page has not yet been Init()d
+144: 	 *					  Init() will have zeroed-memory from a fresh frame
+145: 	 *					  a correctly implemented B+Tree should *NEVER* observe this transiently inside NewPage()->Init() during node creation
+146: 	 *		LEAF_PAGE		- this page is a BPlusTreeLeafPage{}
+147: 	 *		INTERNAL_PAGE		- this page is a BPlusTreeInternalPage{}
+148: 	 *
+149: 	 *	this enum is fixed-witdth as 'int' on the page so that on-disk byte layout is deterministic across compilers
+150: 	 *
+151: 	 *	define page type enum
+152: 	*/
+153: 	enum class IndexPageType { 
+154: 		INVALID_INDEX_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE 
+155: 	};
+156: 	
+157: 	/*
+158: 	 * Both internal and leaf page are inherited from this page.
+159: 	 *
+160: 	 * It actually serves as a header part for each B+ tree page and
+161: 	 * contains information shared by both leaf page and internal page.
+162: 	 *
+163: 	 * Header format (size in byte, 12 bytes in total):
+164: 	 * ---------------------------------------------------------
+165: 	 * | PageType (4) | CurrentSize (4) | MaxSize (4) |  ...   |
+166: 	 * ---------------------------------------------------------
+167: 	 *
+168: 	 *	Inheritance shape
+169: 	 *		BPlusTreePage{}
+170: 	 *		+-- BPlusTreeInternalPage<K, page_id_t, Cmp>
+171: 	 *		+-- BPlusTreeLeafPage<K, RID, Cmp, NumTombs>
+172: 	 *
+173: 	 *	we will *ALMOST* interact with this class polymorphically
+174: 	 *		```
+175: 	 *		auto *base = guard.AsMut<BPlusTreePage>();
+176: 	 *		if (base->IsLeafPage()) {
+177: 	 *			auto *leaf = reinterpret_cast<LeafPage*>(base);
+178: 	 *			...
+179: 	 *		} else {
+180: 	 *			auto *internal = reinterpret_cast<InternalPage*>(base);
+181: 	 *			...
+182: 	 *		}
+183: 	 *		```
+184: 	 *		no vtable is in play (i.e. since we deleted everything)
+185: 	 *		dispatch is manaul via IsLeafPage()
+186: 	*/
+187: 	class BPlusTreePage {
+188: 		public:
+189: 			// Delete all constructor / destructor to ensure memory safety
+190: 			BPlusTreePage() = delete;
+191: 			BPlusTreePage(
+192: 				const BPlusTreePage &other
+193: 			) = delete;
+194: 			~BPlusTreePage() = delete;
+195: 	
+196: 			/*
+197: 			 *	@brief		- true iff page_type_ == LEAF_PAGE
+198: 			 *
+199: 			 *	no symmetric IsInternalPage(), the convention is:
+200: 			 *		```
+201: 			 *		if (page->IsLeafPage()) { ... } else { ...assume internal... }
+202: 			 *		```
+203: 			 *		this is safe *ONLY* if page_type_ is never INVALID_INDEX_PAGE at the point of inspection
+204: 			 *		i.e. Init() has already run
+205: 			 *		do not call on a freshly-fetched frame whose Init() has not yet been issued
+206: 			*/
+207: 			auto IsLeafPage() const -> bool;
+208: 
+209: 			/*
+210: 			 *	@brief		- write page_type_
+211: 			 *
+212: 			 *	called exactly twice per page:
+213: 			 *		1. inside Init() of the derived class
+214: 			 *		   to set LEAF_PAGE/INTERNAL_PAGE right after BPM hands the buffer over
+215: 			 *		2. implicitly back to INVALID when page is deleted
+216: 			 *		   deleted with BPM::DeletePage()
+217: 			 *		   BPM Reset() frame to all-zeroed bytes, which is IndexPageType::INVALID_INDEX_PAGE since INVALID = 0
+218: 			 *
+219: 			 *	Outside Init() we should never need to call this directly
+220: 			*/
+221: 			void SetPageType(
+222: 				IndexPageType page_type
+223: 			);
+224: 	
+225: 			/*
+226: 			 *	@brief		- no. of slots currently occupied in this page
+227: 			 *
+228: 			 *	for internal pages:
+229: 			 *		no. of invalid_or_valid_key/page_id slots
+230: 			 *		which = no. of child ptrs
+231: 			 *		recall key[0] is invalid, so the page logically has (size_ - 1) keys, and size_ child ptrs
+232: 			 *	
+233: 			 *	for leaf pages:
+234: 			 *		no. of key/rid slots
+235: 			 *		tombstoned entries *STILL* count towards size_
+236: 			 *		tombstones are logically deleted but physically present
+237: 			 *		@see b_plus_tree_leaf_page.h for more details
+238: 			*/
+239: 			auto GetSize() const -> int;
+240: 
+241: 			/*
+242: 			 *	@brief		- absolute set of size_
+243: 			 *
+244: 			 *	used by Init() and bulk operations
+245: 			 *	prefer ChangeSizeBy() for incremental updates so that the intent is clear
+246: 			*/
+247: 			void SetSize(
+248: 				int size
+249: 			);
+250: 			
+251: 			/*
+252: 			 *	@brief		- size_ += amount
+253: 			 *			  'amount' may be negative
+254: 			 *
+255: 			 *	convenience over SetSize(GetSize() + amount)
+256: 			 *	useful for code that does B+Tree redistribution
+257: 			 *		i.e. ```source->ChangeSizeBy(-k); dest->ChangeSizeBy(+k);```
+258: 			 *
+259: 			 *	no bounds checking in the API contract
+260: 			 *	but BUSTUB_ASERT() in impl guarding 0 <= new_size <= max_size_ is a reasonable defensive choice while debugging
+261: 			*/
+262: 			void ChangeSizeBy(
+263: 				int amount
+264: 			);
+265: 	
+266: 			/*
+267: 			 *	@brief		- capacity/max slots of this page
+268: 			 *
+269: 			 *	set once at Init() and never modified thereafter
+270: 			 *	= INTERNAL_PAGE_SLOT_CNT for internal pages
+271: 			 *	= LEAF_PAGE_SLOT_CNT for leaf pages 
+272: 			 *	those SLOT_CNT macros are derived from BUSTUB_PAGE_SIZE - corresponding header size
+273: 			*/
+274: 			auto GetMaxSize() const -> int;
+275: 
+276: 			/*
+277: 			 *	@brief		- write max_size_
+278: 			 *			  only Init() should call this
+279: 			*/
+280: 			void SetMaxSize(
+281: 				int max_size
+282: 			);
+283: 
+284: 			/*
+285: 			 *	@brief		- the "at least half full" thereshold for this page
+286: 			 *
+287: 			 *	non-root pages must satisfy GetSize() >= GetMinSize() at all times
+288: 			 *	when a deletion would drop a page below MinSize(), then the B+Tree must either:
+289: 			 *		- redistribute one slot from a sibling
+290: 			 *		- OR merge this page with sibling
+291: 			 *
+292: 			 *	generally min page size == max_page_size / 2
+293: 			 *	but ceil vs floor is an implementation choice
+294: 			 *	@see b_plus_tree_page.cpp for the trade off
+295: 			 *	root is exempt
+296: 			 *		root can have as few as 1 entry
+297: 			 *		i.e. internal root with 1 child + zero keys
+298: 			 *		     or a single-key leaf
+299: 			*/
+300: 			auto GetMinSize() const -> int;
+301: 	
+302: 			/*
+303: 			 * TODO(P2): Remove __attribute__((__unused__)) if you intend to use the fields.
+304: 			 */
+305: 		private:
+306: 			/*
+307: 			 *	@brief		- one of {INVALID_KEY, LEAF, INTERNAL}
+308: 			 *
+309: 			 *	stored as IndexPageType (i.e. fixed width enum class)
+310: 			 *	4 bytes on disk (i.e. default uint32_t on 64 bit x86/arm)
+311: 			 *	
+312: 			 *	__attribute__(__unused__) tag silences unused-field warning in the current code
+313: 			 *	remove it once IsLeafPage()/SetPageType() has been implemented and actually reference page_type_
+314: 			 *
+315: 			 *	Member variables, attributes that both internal and leaf page share
+316: 			*/
+317: 			IndexPageType page_type_ __attribute__(
+318: 				(__unused__)
+319: 			);
+320: 
+321: 			/*
+322: 			 *	@brief		- current slot count
+323: 			 *			  4 bytes
+324: 			 *
+325: 			 *	__unused__ needs to be removed here too once implementation
+326: 			 *	Number of key & value pairs in a page
+327: 			*/
+328: 			int size_ __attribute__(
+329: 				(__unused__)
+330: 			);
+331: 			/*
+332: 			 *	@brief		- capacity
+333: 			 *			  max_slot_ count
+334: 			 *			  4 bytes
+335: 			 *
+336: 			 *	__unused__ needs to be removed here too
+337: 			 *
+338: 			 *	Max number of key & value pairs in a page
+339: 			*/
+340: 			int max_size_ __attribute__(
+341: 				(__unused__)
+342: 			);
+343: 	};
+344: }  // namespace bustub
+
+(End of file - total 344 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_internal_page.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_internal_page.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree_internal_page.h
+6: //
+7: // Identification: src/include/storage/page/b_plus_tree_internal_page.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include <queue>
+16: #include <string>
+17: 
+18: #include "storage/page/b_plus_tree_page.h"
+19: 
+20: namespace bustub {
+21: 	/*
+22: 	 *	B+Tree internal page
+23: 	 *	project 2, task 1 (inner node of the B+tree)
+24: 	 *
+25: 	 *	an internal page is an inner node of a B+Tree
+26: 	 *	contains NO indexed data of its own
+27: 	 *	its only job is to route lookups, inserts, and deletes, from the root towards the correct leaf
+28: 	 *	internal pages are a pure navigational infrastructure
+29: 	 * 	
+30: 	 * 	internal vs. leaf 
+31: 	 * 		- internal
+32: 	 * 		  m keys
+33: 	 * 		  m+1 child ptrs
+34: 	 * 		  key[0] is INVALID/-1 (it is a placeholder)
+35: 	 * 		  ValueType is page_id_t
+36: 	 * 		- leaf
+37: 	 * 		  m keys
+38: 	 * 		  m values (RIDs)
+39: 	 * 		  *EVERY* key slot is valid
+40: 	 * 		  ValueType is rid
+41: 	 * 		  carries next_page_id_ + tombstones_[]
+42: 	 *
+43: 	 * 	off-by-one layout
+44: 	 * 		an internal page logically stores n keys, n+1 child ptrs
+45: 	 * 		BUSTUB crams both arrays into the same INTERNAL_PAGE_SLOT_CNT sized layout
+46: 	 * 		so size_ counts slots, each slot being key/page_id pair
+47: 	 * 		the trick
+48: 	 * 			slot index 0's key into a sentinel that is NEVER read by lookup code
+49: 	 *
+50: 	 * 		slot index:	0		1		2		...	n-1
+51: 	 * 		kay_array_:	INVALID		K(1)		K(2)		...	K(n-1)
+52: 	 * 		page_id_array_:	P(0)		P(1)		P(2)		...	P(n-1)
+53: 	 *
+54: 	 * 	routing invariant:
+55: 	 * 		for any key, X, to be inserted or looked up, find the largest i in [1, size_)
+56: 	 * 		such that K(i) <= X
+57: 	 * 		child to descend into is page_id_array_[i]
+58: 	 * 		if no such i exists (i.e. X < K(1)), then descend into page_id_array_[0]
+59: 	 * 	
+60: 	 * 	equivalent phrasing
+61: 	 * 		.../project_2/README.md "§Internal Page" section:
+62: 	 * 		"Pointer PAGE_ID(i) points to a subtree in which all keys K satisfy K(i) <= K < K(i+1)."
+63: 	 * 		here, PAGE_ID(i) lives at page_id_array_[i] and (i, i+1) range over [0, size_)
+64: 	 * 		K(0) is conceptually -infinity, while K(size_) is conceptually +infinity
+65: 	 *
+66: 	 * 	so size_ in an internal page is no. of child ptrs (i.e. no. of real keys + 1)
+67: 	 * 	"n keys, n+1 pointers" maps to our "size_ slots, of which index 0 is invalid"
+68: 	 *
+69: 	 * 	"page is the buffer"
+70: 	 * 		the same overlay onto raw bytes pattern as the base BPlusTreePage{} class
+71: 	 * 		deleted ctor/dtor
+72: 	 * 		manual Init()
+73: 	 * 		all fields must be trivially constructible
+74: 	 * 	
+75: 	 * 	no tombstones:
+76: 	 * 		internal pages *DO NOT* have tombstone buffer
+77: 	 * 		deletion of routing entries (i.e. happen during leaf merge and propogate upward) are applied immediately, no buffering, no FIFO
+78: 	 * 		hence the simpler template parameter list (INDEX_TEMPLATE_ARUMENTS, 3 params, no NumTombs)
+79: 	 * 		vs. the leaf's parameter list (FULL_INDEX_TEMPLATE_ARGUMENTS, 4 params)
+80: 	 *
+81: 	 * 	layou summary:
+82: 	 * 		offset 0	: BPlusTreePage{} header	(12 bytes)
+83: 	 * 		offset 12	: key_array_[]			(sizeof(KeyType) * INTERNAL_PAGE_SLOT_CNT)
+84: 	 * 		offset ...	: page_id_array_[]		(sizeof(ValueType) * INTERNAL_PAGE_SLOT_CNT)
+85: 	 *
+86: 	 * 		ValueType for BPlusTreeInternalPage{} is always page_id_t
+87: 	 * 		(@see explicit template instantiotions bottom b_plus_tree_internal_page.cpp)
+88: 	 * 		.../project_2/README.md "§Note" on leaf vs. internal max_size_
+89: 	 * 			highlights leaf must carry rid (8 byte)
+90: 	 * 			while internal carries page_id_t (4 bytes)
+91: 	 * 			so internal slots are typically larger per key than leaf slots (i.e. more key, less value)
+92: 	 * 			only if KeyType is small
+93: 	 * 			so internal slots are typically larger per key than leaf slots (i.e. more key, less value)
+94: 	 * 		in common case, GenericKey<8>:
+95: 	 * 			leaf	- 8 for key + 8 for value = 16 bytes
+96: 	 * 			internal	- 8 for key, 4 for value = 12 bytes
+97: 	 * 			internal page fits more slots than key page on the same key width
+98: 	 * 	concurrency:
+99: 	 * 		accessed through ReadPageGuard{}/WritePageGuard{} like every other B+Tree page
+100: 	 * 		all methods here assume that the caller already holds the appropriate guard
+101: 	 * 		the B+Tree latch-crabbing scheme (project 2, task 4) determines when to release internal page guards as descending towards the leaf
+102: 	 *
+103: 	 * 	half-full rule
+104: 	 * 		N.B.!! read this before starting with project 2, task 2 
+105: 	 * 		internal pages MUST satisfy size_ >= GetMinSize() at all times, *EXCEPT* for root
+106: 	 * 		from .../project_2/README.md "each internal page should be at least half full"
+107: 	 * 		when an insertion would push size_ > max_size_, then split or redistribute
+108: 	 * 		when a deletion would pull size_ < MinSize, then merge or redistribute
+109: 	 * 		same rules as for leaf pages
+110: 	 *
+111: 	 * 	what internal pages do *NOT* have
+112: 	 * 		- no next_page_id
+113: 	 * 		  no sibling chaining at the internal level
+114: 	 * 		- num_tombstones_/tombstones_[]
+115: 	 * 		- values array distinct from routing pointer array
+116: 	 * 		  page_id_[] is the value array
+117: 	 * 		  it is just named for what it holds
+118: 	 * 		- a parent_id_ field
+119: 	 * 		  i.e. parent tracking is done via Context{} class during a tree traversal, not stored persistently
+120: 	*/
+121: 	
+122: 	/*
+123: 	 *	@brief		- typedef shorthand for templated internal page type
+124: 	 *
+125: 	 *	used in b_plus_tree_internal_page.cpp to write ```B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init()```
+126: 	 *	instead of the full template spelled form
+127: 	 *	pairs with INDEX_TEMPLATE_ARGUMENTS above each method at *.cpp file
+128: 	*/
+129: 	#define B_PLUS_TREE_INTERNAL_PAGE_TYPE BPlusTreeInternalPage<KeyType, ValueType, KeyComparator>
+130: 
+131: 	/*
+132: 	 *	@brief		- bytes consumed by the fixed header before key_array_ begins
+133: 	 *
+134: 	 *	breakdown:
+135: 	 *		12 bytes from BPlusTreePage
+136: 	 *		page_type_, size_, max_size_
+137: 	 *
+138: 	 *	that is the whole entire header on an internal page
+139: 	 *	no next_page_id_, no tombstone metadata
+140: 	 *	unlike LEAF_PAGE_HEADER_SIZE, this is not misleading:
+141: 	 *		slot count formula below subtracts this, then divides
+142: 	*/
+143: 	#define INTERNAL_PAGE_HEADER_SIZE 12
+144: 	
+145: 	/*
+146: 	 *	@brief		- max no. of key/pageId slots on an internal page
+147: 	 *
+148: 	 *	derivation, per template instantion derived at compile time
+149: 	 *		BUSTUB_PAGE_SIZE = 8192
+150: 	 *		- INTERNAL_PAGE_HEADER_SIZE = 12
+151: 	 *		--------
+152: 	 *		8180 bytes for key_array_[]/page_id_array_[]
+153: 	 *
+154: 	 *	example for <GenericKey<8>, page_id_t, GenericComparator<8>>:
+155: 	 *		(8192 - 12) / (8 + 4) = 8180 / 12 = 681 slots.
+156: 	 *
+157: 	 *	compared to LEAF_PAGE_SLOT_CNT with default NumTombs
+158: 	 *		- leaf		(8192 - 16 - 8 - 0) / (8 + 8) = 8168 / 16 = 510 slots
+159: 	 *		- internal	(8192 - 12)         / (8 + 4) = 8180 / 12 = 681 slots
+160: 	 *		Internal pages fit ~33% more slots in this configuration because their values are 4B (page_id_t) vs. the leaf's 8B (RID), 
+161: 	 *		AND they don't carry the leaf-only header bytes (next_page_id_, tombstones)
+162: 	 *
+163: 	 *	The `(int)` cast on the divisor is there to make the macro safe under ```-Werror=sign-compare```, without it, sizeof returns size_t (unsigned)
+164: 	 *	and the BUSTUB_PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE numerator could get implicitly promoted in surprising ways.
+165: 	*/
+166: 	#define INTERNAL_PAGE_SLOT_CNT \
+167: 		 ((BUSTUB_PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE) / ((int)(sizeof(KeyType) + sizeof(ValueType))))  // NOLINT
+168: 	
+169: 	/**
+170: 	 *	Store `n` indexed keys and `n + 1` child pointers (page_id) within internal page.
+171: 	 *	Pointer PAGE_ID(i) points to a subtree in which all keys K satisfy:
+172: 	 *	K(i) <= K < K(i+1).
+173: 	 *	NOTE: Since the number of keys does not equal to number of child pointers,
+174: 	 *	the first key in key_array_ always remains invalid. That is to say, any search / lookup
+175: 	 *	should ignore the first key.
+176: 	 *
+177: 	 *	Internal page format (keys are stored in increasing order):
+178: 	 *	 ---------
+179: 	 *	| HEADER |
+180: 	 *	 ---------
+181: 	 *	 ------------------------------------------
+182: 	 *	| KEY(1)(INVALID) | KEY(2) | ... | KEY(n) |
+183: 	 *	 ------------------------------------------
+184: 	 *	 ---------------------------------------------
+185: 	 *	| PAGE_ID(1) | PAGE_ID(2) | ... | PAGE_ID(n) |
+186: 	 *	 ---------------------------------------------
+187: 	 *
+188: 	 *	cross reference with the file-level rationale above
+189: 	 *		- HEADER = BPlusTreePage's 12B (page_type_, size_, max_size_)
+190: 	 *		- KEY(1) is the INVALID slot-0 sentinel
+191: 	 *		  Treat it as undefined bytes
+192: 	 *		- KEY(i) for i in [2, n] are the REAL routing keys
+193: 	 *		- PAGE_ID(i) for i in [1, n] are child pointers
+194: 	 *		  PAGE_ID(1) is the "below all keys" leftmost subtree
+195: 	 *		- "n" in this ASCII drawing = size_
+196: 	 *		  the count of slots (= count of  child pointers = count of real-keys + 1))
+197: 	 *
+198: 	 *	One-based vs. zero-based indexing
+199: 	 *		the .../project_2/README.md and the ASCII picture use 1-based indexing (KEY(1), PAGE_ID(1), ...)
+200: 	 *		but the actual C++ code uses 0-based array indexing
+201: 	 *		(key_array_[0], page_id_array_[0], ...)
+202: 	 *		translation from README to C++:
+203: 	 *			- README KEY(i)		<-> key_array_[i - 1]
+204: 	 *			- README PAGE_ID(i)	<-> page_id_array_[i - 1]
+205: 	 *
+206: 	 *	So "KEY(1) is invalid" means "key_array_[0] is invalid"
+207: 	 *	and "lookups start from the second key" means "iterate i from 1, not 0."
+208: 	 *	The .cpp method docs use the C++ 0-based convention.
+209: 	*/
+210: 	INDEX_TEMPLATE_ARGUMENTS
+211: 	class BPlusTreeInternalPage : public BPlusTreePage {
+212: 		public:
+213: 		 // Delete all constructor / destructor to ensure memory safety
+214: 		 BPlusTreeInternalPage() = delete;
+215: 		 BPlusTreeInternalPage(
+216: 			const BPlusTreeInternalPage &other
+217: 		) = delete;
+218: 	
+219: 		 /*
+220: 		  *	@brief		- manual ctor
+221: 		  *			  call exactly once per page lifetime
+222: 		  *
+223: 		  *	@param max_size	- capacity
+224: 		  *			  defaults to INTERNAL_PAGE_SLOT_CNT
+225: 		  *
+226: 		  *	called by B+Tree (project 2, task 2) 
+227: 		  *	immediately after fetching a new page from BPM and reinterpret_cast() on it, this function sets:
+228: 		  *		- page_type_ 	= INTERNAL_PAGE
+229: 		  *		- size_		= 0
+230: 		  *		- max_size_	= max_size
+231: 		  *	does *NOT* touch key_array_[]/page_id_array_[] as their contents remain undefined until they are written
+232: 		  *
+233: 		  *	Note:
+234: 		  *		size_ starts at 0 here
+235: 		  *		but, in practice, an internal page is never observed with size_ == 0 by tree code
+236: 		  *		a newly created internal page
+237: 		  *			i.e. a new root after split
+238: 		  *			is immediately updated with 1 child ptr (size_ = 1)
+239: 		  *			or 2 child ptrs + 1 real key (size_ = 2)
+240: 		  *		'size_ == 0' is a transient state that exists only between Init() and SetValueAt()/SetKeyAt()
+241: 		  *		during that post-split fixup
+242: 		*/
+243: 		 void Init(
+244: 			int max_size = INTERNAL_PAGE_SLOT_CNT
+245: 		);
+246: 	
+247: 		 /*
+248: 		  *	@brief		- routing key at slot 'index'
+249: 		  *	@param index	- 0-based slot index
+250: 		  *			  *MUST* be > 0
+251: 		  *			  i.e. index's '0' key is INVALID sentinel
+252: 		  *	
+253: 		  *	@return		- KeyType at key_array_[index]
+254: 		  *
+255: 		  *	.../project_2/README.md "§Internal Page" is explicit:
+256: 		  *		"the first key in key_array_[] is set to be invalid, and lookups should always start from the second key"
+257: 		  *		every caller iterating keys should start at i=1, not i=0
+258: 		  *
+259: 		  *	why the sentinel exists??
+260: 		  *		having key_array_[]/page_id_array_[] shares the same length and index alignment
+261: 		  *		slot 'i' holds both the key and page_id for subtree to the *RIGHT* of the key, letting us:
+262: 		  *			- keep size_ semantically meaningful as "no. of child ptrs"
+263: 		  *			- shift-insert/shift-delete keys/pointers in lockstep without indexing gefuffling
+264: 		  *			- avoid extra "leading ptr" field
+265: 		  *		the cost is having one extra KeyType field per page (i.e. the invalid slot 0 key)
+266: 		  *		this is negligable on 8192 BUSTUB_PAGE_SIZE
+267: 		  *
+268: 		  *	caller contract/responsibility:
+269: 		  *		- 0 < index < GetSize()
+270: 		  *		- TODO!!: a reasonable defensive implementation
+271: 		*/
+272: 		 auto KeyAt(
+273: 			int index
+274: 		) const -> KeyType;
+275: 	
+276: 		 /*
+277: 		  *	@brief		- write the routing key at slot 'index'
+278: 		  *	@param index	- 0-based slot index
+279: 		  *			  must be > 0
+280: 		  *	@param key	- new key value
+281: 		  *
+282: 		  *	called heavily by split/merge/redistribute project 2, task 2
+283: 		  *		when a child's MIN/MAX boundary changes
+284: 		  *		e.g. after a leaf split, the parent gets a new key, separating the old leaf from the new sibling
+285: 		  *		the parent updates the corresponding routing key here
+286: 		  *
+287: 		  *	caller contract/responsibilty:
+288: 		  *		- 0 < index < GetSize()
+289: 		  *		- caller is resposible for maintaining the sorted key order across the array
+290: 		*/
+291: 		 void SetKeyAt(
+292: 			int index, 
+293: 			const KeyType &key
+294: 		);
+295: 	
+296: 		 /**
+297: 		 * @param value The value to search for
+298: 		 * @return The index that corresponds to the specified value
+299: 		 *
+300: 		 *	@brief		- find the slot whose page_id_array_[i] == value
+301: 		 *	@return		- index 'i' OR -1 OR size_ if not found
+302: 		 *
+303: 		 *	used by parent side book-keeping when a child wants to look up its own position in the parent's ptr array
+304: 		 *	e.g. to find a sibline or redistribute/merge
+305: 		 *	implementation must linearly scan page_id_array_[0..(size-1)] for the matching page_id
+306: 		 *	
+307: 		 *	caller contract/responsibility:
+308: 		 *		value is presumed to actually be present
+309: 		 *		if "not found" return a defensive sentinel
+310: 		 *		in project 2, task 2
+311: 		 *			acts on the result of calling this, assert ```i != -1``` is a reasonable defensive implementation
+312: 		 *	 
+313: 		 *	performance:
+314: 		 *		O(size_)
+315: 		 *		binary search is not possible because values (i.e. page_ids) are not sorted in any meaningful way
+316: 		 *		routing keys *ARE* sorted, but page_id alongside is whatever the BP happened to have handed out
+317: 		*/
+318: 		 auto ValueIndex(
+319: 			const ValueType &value
+320: 		) const -> int;
+321: 	
+322: 		 /*
+323: 		  *	@brief		- child 'page_id' at slot 'index'
+324: 		  *	@param index	- 0-based slot index
+325: 		  *			  0 <= index < GetSize()
+326: 		  *	@return		- ValueType/page_id_t for internal poge
+327: 		  *			  at page_id_array_[index]
+328: 		  *
+329: 		  *	where KeyAt(0) is invalid, ValueAt(0) is valid
+330: 		  *	i.e. the left most child ptr is always valid
+331: 		  *	every slot 0..(size-1) corresponds to a real subtree
+332: 		  *
+333: 		  *	used during tree descent
+334: 		  *		given a routing decision for key X
+335: 		  *		descent code computes the correct slot index i and then descends into bpm_->ReadPage(ValueAt(i))
+336: 		*/
+337: 		 auto ValueAt(
+338: 			int index
+339: 		) const -> ValueType;
+340: 	
+341: 		 /*
+342: 		 * @brief For test only, return a string representing all keys in
+343: 		 * this internal page, formatted as "(key1,key2,key3,...)"
+344: 		 *
+345: 		 * @return The string representation of all keys in the current internal page
+346: 		 *	
+347: 		 *	skips slot 0 (i.e. the invalid sentinel)
+348: 		 *	```for (int i = 1; ...)``` starting index
+349: 		 *	output is the same comma separated format that the visualize expects
+350: 		 *	defined inline so that it will work wihout a *.cpp implementation
+351: 		 *	mirrors BPlusTreeLeafPage::ToString(), but wihtout tombstoned keys prefix
+352: 		*/
+353: 		 auto ToString() const -> std::string {
+354: 			 std::string kstr = "(";
+355: 			 bool first = true;
+356: 	
+357: 			 // First key of internal page is always invalid
+358: 			 for (int i = 1; i < GetSize(); i++) {
+359: 			   KeyType key = KeyAt(i);
+360: 			   if (first) {
+361: 			     first = false;
+362: 			   } else {
+363: 			     kstr.append(",");
+364: 			   }
+365: 	
+366: 			   kstr.append(std::to_string(key.ToString()));
+367: 			 }
+368: 			 kstr.append(")");
+369: 	
+370: 			 return kstr;
+371: 		 }
+372: 	
+373: 		private:
+374: 		 /*
+375: 		  *	@brief		- sorted array of routing keys
+376: 		  *	
+377: 		  *	slot 0 is INVALID sentinel, its contents are undefined and must never be read
+378: 		  *	slots 1..(size - 1) are valid routing keys, kept in ascending order at all times (i.e. under the supplied KeyComparator)
+379: 		  *	project 2's "§Requirments and Hints" recommends binary search for lookup
+380: 		  *		performance adjacent correctness, else requires timeouts
+381: 		  *
+382: 		  *	capacity is INTERNAL_PAGE_SLOT_CNT
+383: 		  *	only the first size_ slots are live
+384: 		  *	project 2, README outlines "§Common Pitfalls"
+385: 		  *		"do not modify size or type of this array"
+386: 		  *		the autograder depends on the exact byte layout
+387: 		*/
+388: 		 KeyType key_array_[INTERNAL_PAGE_SLOT_CNT];
+389: 
+390: 		 /*
+391: 		  *	@brief		- parallel array of child page IDs
+392: 		  *
+393: 		  *	slot i, where i (0 <= i < size_) holds the page_id of the subtree that satisfies:
+394: 		  *		KeyAt(i) <= K < KeyAt(i+1)
+395: 		  *	KeyAt(0) treated as -infinity, KetAt(size_) treated as +infinity
+396: 		  *
+397: 		  *	ValueType is always ```page_id_t``` for internal pages
+398: 		  *	@see ```template class BPlusTreeInternalPage<..., page_id_t, ...>``` at the bottom of b_plus_tree_internal_page.cpp
+399: 		  *	i.e. not template variant that uses an other ValueType
+400: 		*/
+401: 		 ValueType page_id_array_[INTERNAL_PAGE_SLOT_CNT];
+402: 
+403: 		 /*
+404: 		  *	(Spring 2025) Feel free to add more fields and helper functions below if needed
+405: 		  *
+406: 		  *	Same trivially-constructible-only rule as for the leaf page
+407: 		  *	@see leaf-page header for details b_plus_tree_leaf_page.h
+408: 		  *	In practice internal pages need NO (for project 2, task 1)
+409: 		*/
+410: 	};
+411: 	
+412: }  // namespace bustub
+
+(End of file - total 412 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_leaf_page.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_leaf_page.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree_leaf_page.h
+6: //
+7: // Identification: src/include/storage/page/b_plus_tree_leaf_page.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include <string>
+16: #include <utility>
+17: #include <vector>
+18: 
+19: #include "storage/page/b_plus_tree_page.h"
+20: 
+21: namespace bustub {
+22: 	/*
+23: 	 *	B+Tree leaf page
+24: 	 *	project 2, task 1
+25: 	 *	the leaf node is the bottom-level node
+26: 	 *
+27: 	 *	a leaf holds the actual indexed data of the leaf node inside out B+Tree
+28: 	 *	internal pages only exist to direct lookups to the correct leaf
+29: 	 *	leaves are where keys live alongside its record ID (i.e. rid)
+30: 	 *	@see rid.h
+31: 	 *
+32: 	 *	leaf node vs. internal node
+33: 	 *		internal:
+34: 	 *			m keys
+35: 	 *			m+1 child ptrs
+36: 	 *			key[0] is invalid
+37: 	 *		leaf:
+38: 	 *			m keys
+39: 	 *			m values (i.e.RIDs)
+40: 	 *			*EVERY* key slot is valid
+41: 	 *
+42: 	 *	Spring of 2026 has a novel addition:
+43: 	 *		TOMBSTONE_BUFFER (i.e. buffered deletions)
+44: 	 *		.../project_2/README.md describes as "simplified Bε-tree"
+45: 	 *		deletion does *NOT* immediately remove the key/rid from arrays
+46: 	 *		instead, the index of the deleted antry is appended to a fixed size FIFO buffer
+47: 	 *			i.e. ```tombstones_[0..num_tombstones_-1]```
+48: 	 *		only when the buffer overflows, an attempted (k+1)th deletion, then the *OLDEST* 
+49: 	 *		buffered deletion applied to key/value arrays
+50: 	 *		see "§Tombstone" semantics below
+51: 	 *
+52: 	 *	page is the buffer:
+53: 	 *		same as the overlay-on-raw-bytes pattern as the base class
+54: 	 *		@see b_plus_tree_page.h rationale
+55: 	 *		deleted ctor/dtor, manual Init(), all fields must be trivially constructible
+56: 	 *			i.e. this is why num_tombstones_ and tombstones_[] are size_t/size_t[N] instead of std::vector<size_t>
+57: 	 *
+58: 	 *	layout summary:
+59: 	 *	TODO!!: proper rectangular docs here please
+60: 	 *		offset 0	: BPlusTreePage header	(12 bytes)
+61: 	 *		offset 12	: next_page_id		(4 bytes)
+62: 	 *		offset 16	: num_tombstones_	(8 bytes, i.e. sizeof(size_t))
+63: 	 *		offset 24	: tombstones_[]		(8 bytes * LEAF_PAGE_TOMB_CNT)
+64: 	 *		varying offset	: keys_array_[]		(sizeof(KeyType) * LEAF_PAGE_SLOT_CNT)
+65: 	 *		varying offset	: rid	_array_[]	(sizeof(ValueType) * LEAF_PAGE_SLOT_CNT)
+66: 	 *
+67: 	 *	LEAF_PAGE_HEADER_SIZE = 16
+68: 	 *		in the macro below counts *ONLY* BPlusTreePage{} header + next_page_id_
+69: 	 *		*NOT* num_tombstones_/tombstones_[]
+70: 	 *		slot count formula subtracts those *SEPARATELY*
+71: 	 *		**BEWARE OF THIS ASYMETRY!**
+72: 	 *
+73: 	 *	Concurrency:
+74: 	 *		the leaf page is accessed through ReadPageGuard{}/WritePageGuard{},
+75: 	 *		this is the only way to touch leaf page bytes
+76: 	 *		inside a guard's lifetime, no other thread can mutate
+77: 	 *			i.e. Read() holds shared, Write() holds exclusive
+78: 	 *		all the methods below assume that the caller already holds the right guard
+79: 	 *	
+80: 	 *	Tombstone semantics
+81: 	 *		
+82: 	 *		```
+83: 	 *		k := LEAF_PAGE_TOMB_CNT
+84: 	 *		```
+85: 	 *		compile-time per template instantiation
+86: 	 *
+87: 	 *		insertion of key K:
+88: 	 *			1. if K exists as a tombstoned entry
+89: 	 *			   clear the tombstone
+90: 	 *			   the entry "resurrects"
+91: 	 *			2. else, insert into key_array_/rid_array_ at the sorted position
+92: 	 *
+93: 	 *		deletion of key K:
+94: 	 *			1. if K exists as a tombstoned entry
+95: 	 *			   clear the tombstone
+96: 	 *			1. find index i, where key_array_[i] == K
+97: 	 *			2. if k > 0
+98: 	 *				- if num_tombstones_ < 0
+99: 	 *				  tombstones_[num_tombstones_++] = i
+100: 	 *				- else
+101: 	 *				  i.e. buffer full
+102: 	 *					1. physically remove entry at tombstones_[0]
+103: 	 *					   i.e. the oldest pending deletion
+104: 	 *					2. shift every key_array_[]/rid_array_[] slot above the index down by 1
+105: 	 *					   i.e. shift left
+106: 	 *					   decrement size_
+107: 	 *					3. any tombstones_[j] > tombstones_[0], also shift left by 1
+108: 	 *					   i.e. its target indices moved
+109: 	 *					4. FIFO shift tombstones_[1..(k-1)] -> tombstones_[0..(k-2)]
+110: 	 *					5. tombstones_[k-1] = new index of k, after step 2
+111: 	 *			3. if k == 0
+112: 	 *			   physically remove key/rid immediately 
+113: 	 *			   no buffering
+114: 	 *
+115: 	 *	what about merge/redistribute
+116: 	 *	(i.e. project 2, task 2)
+117: 	 *		.../project_2/README.md is explicit
+118: 	 *		"When a leaf is coalesced, or redistributed into another leaf, then consider all of its pending deletions
+119: 	 *		to be more recent than any pending deletion in the recipient leaf"
+120: 	 *			the node with entries being inserted into it should have its tombstones processed first
+121: 	 *
+122: 	 *		practical interpration:
+123: 	 *			- ```source.tombstones_[]``` FIFO appended after *AFTER* ```dest.tombstones_[]```
+124: 	 *			- if the combined count exceeds k
+125: 	 *			  *EXCESS* oldest entries (which are dests) get physically applied first
+126: 	 *			  in FIFO order until the buffer fits
+127: 	 *			- indices in the appended source-tombstones must be *SHIFTED* to account to for dest existing entries
+128: 	 *			  their target slots now at index dest.size + source_local_index
+129: 	 *
+130: 	 *	read-side rules (project 2, task 3)
+131: 	 *		- IndexIterator must *SKIP* any key/rid whose physical index appears in tombstones_[0..(num_tombstones-1)]
+132: 	 *		- GetTombstones() returns coresponding *KEYS* (not indices)
+133: 	 *		  in oldest first order
+134: 	 *		  used for tests + visualization
+135: 	*/
+136: 
+137: 	/*
+138: 	 *	@brief		- typedef templated for short-hand leaf-page type
+139: 	 *
+140: 	 *	used in *.cpp to write B_PLUS_TREE_PAGE_TYPE::Init()
+141: 	 *	instead of BPlusTreePage<KeyType, ValueType, KeyComparator, NumTombs>::Init() for every method definition
+142: 	 *	pairs with FULL_INDEX_TEMPLATE_ARGUMENTS above each *.cpp method
+143: 	*/
+144: 	#define B_PLUS_TREE_LEAF_PAGE_TYPE BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>
+145: 
+146: 	/*
+147: 	 *	@brief		- bytes accounted in the "fixed header" portion of the leaf page
+148: 	 *
+149: 	 *	breakdown (16 bytes)
+150: 	 *		- 12 bytes from BPlusTreePage
+151: 	 *		  page_type_, size_, max_size_
+152: 	 *		- 4 bytes for next_page_id_
+153: 	 *
+154: 	 *	Note:
+155: 	 *		this does *NOT* include num_tombstones_ (8 bytes)
+156: 	 *		or tombstones_[] (8 * LEAF_PAGE_TOMB_COUNT bytes)
+157: 	 *		LEAF_PAGE_SLOT_CNT macro here subtracts those explicitly on top of LEAF_PAGE_HEADER_SIZE
+158: 	 *		do not conflate/confused "header size", with "bytes consumed before the key array"
+159: 	*/
+160: 	#define LEAF_PAGE_HEADER_SIZE 16
+161: 
+162: 	/*
+163: 	 *	@brief		- the tombstone buffer capacity when NumTombs is specified
+164: 	 *
+165: 	 *	Zero by default:
+166: 	 *		a fresh template instantiation with no NumTombs argument
+167: 	 *		i.e. thanks to FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN having NumTombs = 0
+168: 	 *		has *NO* tombstone buffer at all - deletions are applied immediately
+169: 	 *		matches classic B+Tree
+170: 	 *
+171: 	 *	tuning knob for the leaderboard:
+172: 	 *		.../project_2/README.d "§Leaderboard Task"
+173: 	 *		the leaderboard uses NumTombs == -1, triggers fallback to LEAF_PAGE_TOMB_CNT below to use this default
+174: 	 *		override LEAF_PAGE_DEFAULT_TOMB_CNT if we want our leaderboard runs to use non-zero buffer (e.g. 4, 8, 16)
+175: 	 *		without changing explicit template instantiations
+176: 	*/
+177: 	#define LEAF_PAGE_DEFAULT_TOMB_CNT 0
+178: 	
+179: 	/*
+180: 	 *	@brief		- the actual tombstone capacity used by *THIS* instantiation
+181: 	 *
+182: 	 *	conditions:
+183: 	 *		- NumTombs < 0	- use LEAF_PAGE_DEFAULT_TOMB_CNT 
+184: 	 *				  i.e. the leaderboard's "no enforcement, you pick" mode
+185: 	 *		- NumTombs >= 0	- use NumTombs directly
+186: 	 *
+187: 	 *	this is a compile-time constant per template instantiation
+188: 	 *	ends up baked into the sizes of tombstones_[]/key_array_[] for that particular BPlusTreeLeafPage<> type
+189: 	*/
+190: 	#define LEAF_PAGE_TOMB_CNT ((NumTombs < 0) ? LEAF_PAGE_DEFAULT_TOMB_CNT : NumTombs)
+191: 	
+192: 	/*
+193: 	 *	@brief		- max no. of key/rid slots on a leaf page
+194: 	 *
+195: 	 *	derivation
+196: 	 *	(per template instantiation, evaluated at compile time)
+197: 	 *		BUSTUB_PAGE_SIZE	- total bytes available
+198: 	 *					  e.g. 8192 bytes
+199: 	 *		LEAF_PAGE_HEADER_SIZE	- base header + next_page_id_
+200: 	 *					  16 bytes
+201: 	 *		sizeof(size_t)		- num_tombstones_ field
+202: 	 *					  8 bytes on x86/arm 64
+203: 	 *		LEAF_PAGE_TOMB_CNT * sizeof(size_t)	- tombstones_[]
+204: 	 *		------------
+205: 	 *		remaining bytes for key_array_[]/rid_array_[]
+206: 	 *
+207: 	 *	each slot takes up sizeof(KeyType) + sizeof(ValueType) bytes
+208: 	 *	so slot count = (remaining bytes) / (per-slot size)
+209: 	 *
+210: 	 *	example:
+211: 	 *		<GenericKey<8>, RID, Comparator<8>, 0>
+212: 	 *		(8192 - 16 - 8 - 0) / (8 + 8)
+213: 	 *		= 8168 / 16
+214: 	 *		= 510 slots
+215: 	 *
+216: 	 *		OR
+217: 	 *
+218: 	 *		NumTombs = 3
+219: 	 *		( 8192 - 16 - 8 - 3(8)) / (8 + 8)
+220: 	 *		= 8144 / 16
+221: 	 *		= 509 slots
+222: 	 *		adding tombstone slots eats key/value capacity
+223: 	 *	
+224: 	 *	internal page comparison:
+225: 	 *		INTERNAL_PAGE_SLOT_CNT = ( 8192 - 12 ) / 16 = 511
+226: 	 *		internal pages have 1 more slot because they do not carry next_page_id_, num_tombstones_, or tombstones_[]
+227: 	*/
+228: 	#define LEAF_PAGE_SLOT_CNT                                                                               \
+229: 			((BUSTUB_PAGE_SIZE - LEAF_PAGE_HEADER_SIZE - sizeof(size_t) - (LEAF_PAGE_TOMB_CNT * sizeof(size_t))) / \
+230: 			 (sizeof(KeyType) + sizeof(ValueType)))  // NOLINT
+231: 	
+232: 	/**
+233: 	 *	Store indexed key and record id(record id = page id combined with slot id,
+234: 	 *	see include/common/rid.h for detailed implementation) together within leaf
+235: 	 *	page. Only support unique key.
+236: 		*
+237: 	 *	Leaf pages also contain a fixed buffer of "tombstone" indexes for entries
+238: 	 *	that have been deleted.
+239: 		*
+240: 	 *	Leaf page format (keys are stored in order, tomb order is up to you):
+241: 	 *	 --------------------
+242: 	 *	| HEADER | TOMB_SIZE | (where TOMB_SIZE is num_tombstones_)
+243: 	 *	 --------------------
+244: 	 *	 -----------------------------------
+245: 	 *	| TOMB(0) | TOMB(1) | ... | TOMB(k) |
+246: 	 *	 -----------------------------------
+247: 	 *	 ---------------------------------
+248: 	 *	| KEY(1) | KEY(2) | ... | KEY(n) |
+249: 	 *	 ---------------------------------
+250: 	 *	 ---------------------------------
+251: 	 *	| RID(1) | RID(2) | ... | RID(n) |
+252: 	 *	 ---------------------------------
+253: 		*
+254: 	 *	 Header format (size in byte, 16 bytes in total):
+255: 	 *	 -----------------------------------------------
+256: 	 *	| PageType (4) | CurrentSize (4) | MaxSize (4) |
+257: 	 *	 -----------------------------------------------
+258: 	 *	 -----------------
+259: 	 *	| NextPageId (4) |
+260: 	 *	 -----------------
+261: 	 *
+262: 	 *	 cross-reference with file-level rationale (at the top of current file)
+263: 	 *	 	- HEADER above
+264: 	 *	 	  BPlusTreePage{} 12 bytes (page_type_, size_, max_size_)
+265: 	 *	 	  + next_page_id_ 4 bytes
+266: 	 *	 	  = LEAF_PAGE_HEADER_SIZE 16 bytes
+267: 	 *	 	- TOMB_SIZE
+268: 	 *	 	  num_tombstones_ 8 bytes (i.e. sizeof(size_t))
+269: 	 *	 	- TOMB(0..k) = tombstones_[]
+270: 	 *	 	  k * 8 bytes
+271: 	 *	 	  k = LEAF_PAGE_TOMB_CNT
+272: 	 *	 	- n = curent_size_
+273: 	 *	 	  the arrays have capacity = LEAF_PAGE_SLOT_CNT
+274: 	 *	 	  but only the first 'n' entries are valid (the rest is not yet written to)
+275: 	 *
+276: 	 *	 unique key invariant:
+277: 	 *	 	at .../project_2/README.md "§Task 2" states that unique keys are requirex
+278: 	 *	 	the base contract on this leaf being:
+279: 	 *	 		at most 1 slot per key
+280: 	 *	 		when a key is deleted via tombstone, its slot is still occupied physically
+281: 	 *	 		re-inserting same key resurrects tombstoned slot rather than adding a duplicaet
+282: 	 *
+283: 	 *	 sibling linkage:
+284: 	 *	 	next_page_id_ points to the leaf to the right in the singley linked list of leaves
+285: 	 *	 	no prev pointer
+286: 	 *	 	enough to support IndexIterator left-to-right scan (i.e. project 2, task 3)
+287: 	 *	 	.../project_2/README.md's "§Task 3" calls this out as the reason for sibling pointers at all
+288: 	*/
+289: 	FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
+290: 	class BPlusTreeLeafPage : public BPlusTreePage {
+291: 		public:
+292: 			// Delete all constructor / destructor to ensure memory safety
+293: 			BPlusTreeLeafPage() = delete;
+294: 			BPlusTreeLeafPage(const BPlusTreeLeafPage &other) = delete;
+295: 	
+296: 			/*
+297: 			 *	@brief		- manual ctor
+298: 			 *			  call exactly once per page lifetime
+299: 			 *
+300: 			 *	@param max_size	- leaf page capacity
+301: 			 *			  deafaults to LEAF_PAGE_SLOT_CNT
+302: 			 *			  i.e. "use as much as the page can fit"
+303: 			 *
+304: 			 *	called by B+Tree in project 2, task 2
+305: 			 *	immediately after fetcing a new page from BPM and reinterpret_cast()ing it, setting:
+306: 			 *		- page_type_	= LEAF_PAGE	(via SetPageType())
+307: 			 *		- size_		= 0 		(via SetSize())
+308: 			 *		- max_size_	= max_size	(via SetMaxSize())
+309: 			 *		- next_page_id_	= INVALID_PAGE_ID	(no sibling yet)
+310: 			 *		- num_tombstones_	= 0	(no buffered deletions yet)
+311: 			 *
+312: 			 *	does *NOT* touch tombstones_[], key_array_[], rid_array_[]
+313: 			 *	since their contents are undefined until the corresponding indices are written
+314: 			*/
+315: 			void Init(
+316: 				int max_size = LEAF_PAGE_SLOT_CNT
+317: 			);
+318: 	
+319: 			/*
+320: 			 *	@brief		- the keys of the currently-tombstones entries
+321: 			 *			  oldest first
+322: 			 *
+323: 			 *
+324: 			 *	@return		- vector of num_tombstones_ KeyType values
+325: 			 *			  in FIFO order
+326: 			 *			  oldest at the front, newest at the back
+327: 			 *
+328: 			 *	tombstones store indices noy keys
+329: 			 *		this getter dereferences through the indices to return the keys
+330: 			 *		this is what our tests and the visualize want
+331: 			 *
+332: 			 *	important:
+333: 			 *		this is the *ONLY* page in the leaf API where it is okay to return std::vector
+334: 			 *			- the function calls by *VALUE*
+335: 			 *			  the vector lives on the caller's stack/heap, and *NOT* in the page
+336: 			 *			- no std::vector field is ever stored in the page
+337: 			 *			  this would violate "page is buffer" rule
+338: 			 *
+339: 			 *	used by:
+340: 			 *		- ToString()
+341: 			 *		  visualizer renders these keys on the 3rd row of LeafNode{} boxes
+342: 			 *		  @see .../project_2/README.md "§Tree Visualization" section
+343: 			 *		- IndexIterator()
+344: 			 *		  for project 2, task 3
+345: 			 *		  only by reading tombstones_[] directly, not via GetTombstones()
+346: 			 *		- tests verifying tombstones book-keeping
+347: 			*/
+348: 			auto GetTombstones() const -> std::vector<KeyType>;
+349: 	
+350: 			// Helper methods
+351: 			
+352: 			/*
+353: 			 *	@brief		- page_id_t of the right sibling
+354: 			 *			  or INVALID_PAGE_ID if none
+355: 			 *
+356: 			 *	singley linked
+357: 			 *	INVALID_PAGE_ID (-1) means "this is the rightmost leaf of the iteration"
+358: 			 *	used by IndexIterator() (i.e. project 2, task 3)
+359: 			 *		to advance from one leaf to the next during in-order scan
+360: 			*/
+361: 			auto GetNextPageId() const -> page_id_t;
+362: 
+363: 			/*
+364: 			 *	@brief		- write next_page_id_
+365: 			 *
+366: 			 *	called during:
+367: 			 *		- insert path on split
+368: 			 *		  the new right sibling adopts the leaf's next_page_id_
+369: 			 *		  the old leaf's next_page_id_ is updated to point to the new sibling
+370: 			 *		- Delete path on merge
+371: 			 *		  surviving leaf adopts "merged away" leaf's next_page_id_
+372: 			*/
+373: 			void SetNextPageId(
+374: 				page_id_t next_page_id
+375: 			);
+376: 			
+377: 			/*
+378: 			 *	@brief		- physical key at slot 'index'
+379: 			 *			  IGNORES tombstones
+380: 			 *
+381: 			 *	@param index	- 0-based slot index into key_array_
+382: 			 *			  0 <= index < GetSize()
+383: 			 *
+384: 			 *	@return		- KeyType at that slot
+385: 			 *
+386: 			 *	Project 2, Task 1:
+387: 			 *		KeyAt() must return physical entry at a given index regardless of whethere tombstone exists for that entry
+388: 			 *		i.e. if a tombstone currently records that index 'i' is pending deletion
+389: 			 *		     KeyAt(i) still returns the original key
+390: 			 *		     the entry is logically deleted but physically present
+391: 			 *
+392: 			 *	callers that want to skip tombstones entries must cross reference tombstones_[] themselves
+393: 			 *	IndexIterator() does this
+394: 			*/
+395: 			auto KeyAt(
+396: 				int index
+397: 			) const -> KeyType;
+398: 	
+399: 			/*
+400: 			 *	@brief		- for the test only return a string representing all keys
+401: 			 *			  in this leaf page formatted as "(tombkey1,tombkey2...|key1,key2,...)"
+402: 			 *
+403: 			 *	@return		- std::string
+404: 			 *
+405: 			 *	format:
+406: 			 *		( tomb_key_0 , tomb_key_1 , ... | key_0 , key_1 , key_2 , ... )
+407: 			 *
+408: 			 *	the pipe '|' separates tombstoned keys from physical keys
+409: 			 *	right side includes tombstoned keys too since KeyAt() does not skip them
+410: 			 *	used by visualizer and unit tests
+411: 			 *
+412: 			 *	implementation note:
+413: 			 *		this method is defined inline in the header	@see b_plus_tree_leaf_page.h
+414: 			 *		so it works without a corresponding entry at b_plus_tree_leaf_page.cpp
+415: 			 *		so it is available right now, as it is not implemented at *.cpp
+416: 			*/
+417: 			auto ToString() const -> std::string {
+418: 				std::string kstr = "(";
+419: 				bool first = true;
+420: 	
+421: 				auto tombs = GetTombstones();
+422: 				for (size_t i = 0; i < tombs.size(); i++) {
+423: 					kstr.append(std::to_string(tombs[i].ToString()));
+424: 					if ((i + 1) < tombs.size()) {
+425: 						kstr.append(",");
+426: 					}
+427: 				}
+428: 	
+429: 				kstr.append("|");
+430: 	
+431: 				for (int i = 0; i < GetSize(); i++) {
+432: 					KeyType key = KeyAt(i);
+433: 					if (first) {
+434: 						first = false;
+435: 					} else {
+436: 						kstr.append(",");
+437: 					}
+438: 	
+439: 					kstr.append(std::to_string(key.ToString()));
+440: 				}
+441: 				kstr.append(")");
+442: 	
+443: 				return kstr;
+444: 			}
+445: 	
+446: 		private:
+447: 			/*
+448: 			 *	@brief		- page_id of the next sibling leaf
+449: 			 *			  or INVALID_PAGE_ID
+450: 			 *
+451: 			 *	part of the leaf page header (offset 12, 4 bytes)
+452: 			 *	maintained by GetNextPageId(), SetNextPageId()
+453: 			 *	treated as opaque by everything except split-merge code in IndexIterator
+454: 			*/
+455: 			page_id_t next_page_id_;
+456: 			
+457: 			/*
+458: 			 *	@brief		- no. of currently buffered deletions
+459: 			 *			  0 <= num <= LEAF_PAGE_TOMB_CNT
+460: 			 *
+461: 			 *	size_t (8 bytes on 64) for aligntment/consistenct with tombstones_[]
+462: 			 *	when num_tombstones_== LEAF_PAGE_TOMB_CNT, the buffer is still full
+463: 			 *	the next deletion forces "apply oldest" operation 
+464: 			 *	@see "§Tombstone" notes in this file-level rationale
+465: 			*/
+466: 			size_t num_tombstones_;
+467: 
+468: 			/*
+469: 			 *	@brief		- FIFO ring of `slot` indices
+470: 			 *			  e.g. size_ - 1 pending deletion
+471: 			 *
+472: 			 *	tombstones_[0] is the oldest pending deletion
+473: 			 *	tombstones_[num-1] is the newest
+474: 			 *
+475: 			 *	each value being an index into key_array_/rid_array_
+476: 			 *	but is not the key, it is the indice
+477: 			 *	cross-reference via key_array_[tombstones_[i]] when we need the actual key
+478: 			 *	
+479: 			 *	Fixed-size tombstone buffer (indexes into key_array_ / rid_array_).
+480: 			*/
+481: 			size_t tombstones_[LEAF_PAGE_TOMB_CNT];
+482: 
+483: 			/*
+484: 			 *	@brief		- sorted array of indexed keys
+485: 			 *	
+486: 			 *	slots 0..(slots_ - 1) are tombstoned (i.e. regardless of whether its tombstoned)
+487: 			 *	slots size_..(LEAF_PAGE_SLOT_CNT - 1) contains garbage from prior uses of this physical frame
+488: 			 *	never read bytes past size_
+489: 			 *
+490: 			 *	keys kept in ascending sorted order at all times (i.e. under supplied KeyCamparator)
+491: 			 *	project 3's README "§Requirements and Hints" recommends binary search for both lookups and insertion position
+492: 			 *		it's a correctness-adjacent perf requirement (else timeout)
+493: 			 *
+494: 			 *	project 3's README "§Common Pitfalls" section
+495: 			 *		does not modify size/type of this array
+496: 			 *
+497: 			 *	auto grader depends on the exact byte order
+498: 			 *
+499: 			 *	Array members for page data.
+500: 			*/
+501: 			KeyType key_array_[LEAF_PAGE_SLOT_CNT];
+502: 
+503: 			/*
+504: 			 *	@brief		- parallel array of RIDs corresponding to key_array_
+505: 			 *
+506: 			 *	rid_array_[i] is the rid for the row indexed by key_array_[i]
+507: 			 *	a rid is (page_id_t, slot_num), 8 bytes on 64
+508: 			 *	@see rid.h
+509: 			 *
+510: 			 *	same length/validiity/no-modifcation rules as key_array_
+511: 			*/
+512: 			ValueType rid_array_[LEAF_PAGE_SLOT_CNT];
+513: 
+514: 			// (Spring 2025) Feel free to add more fields and helper functions below if needed
+515: 	};
+516: 	
+517: }  // namespace bustub
+
+(End of file - total 517 lines)
+</content>
+```
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 122.3s)
+
+_Thinking:_
+
+Let me read the current `rid.h` file to produce the documented version.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/common/rid.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/common/rid.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // rid.h
+6: //
+7: // Identification: src/include/common/rid.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include <cstdint>
+16: #include <sstream>
+17: #include <string>
+18: 
+19: #include "common/config.h"
+20: 
+21: namespace bustub {
+22: 	
+23: 	class RID {
+24: 	 public:
+25: 		/** The default constructor creates an invalid RID! */
+26: 		RID() = default;
+27: 	
+28: 		/**
+29: 		 * Creates a new Record Identifier for the given page identifier and slot number.
+30: 		 * @param page_id page identifier
+31: 		 * @param slot_num slot number
+32: 		 */
+33: 		RID(page_id_t page_id, uint32_t slot_num) : page_id_(page_id), slot_num_(slot_num) {}
+34: 	
+35: 		explicit RID(int64_t rid) : page_id_(static_cast<page_id_t>(rid >> 32)), slot_num_(static_cast<uint32_t>(rid)) {}
+36: 	
+37: 		inline auto Get() const -> int64_t { return (static_cast<int64_t>(page_id_)) << 32 | slot_num_; }
+38: 	
+39: 		inline auto GetPageId() const -> page_id_t { return page_id_; }
+40: 	
+41: 		inline auto GetSlotNum() const -> uint32_t { return slot_num_; }
+42: 	
+43: 		inline void Set(page_id_t page_id, uint32_t slot_num) {
+44: 			page_id_ = page_id;
+45: 			slot_num_ = slot_num;
+46: 		}
+47: 	
+48: 		inline auto ToString() const -> std::string {
+49: 			std::stringstream os;
+50: 			os << "page_id: " << page_id_;
+51: 			os << " slot_num: " << slot_num_ << "\n";
+52: 	
+53: 			return os.str();
+54: 		}
+55: 	
+56: 		friend auto operator<<(std::ostream &os, const RID &rid) -> std::ostream & {
+57: 			os << rid.ToString();
+58: 			return os;
+59: 		}
+60: 	
+61: 		auto operator==(const RID &other) const -> bool { return page_id_ == other.page_id_ && slot_num_ == other.slot_num_; }
+62: 	
+63: 	 private:
+64: 		page_id_t page_id_{INVALID_PAGE_ID};
+65: 		uint32_t slot_num_{0};  // logical offset from 0, 1...
+66: 	};
+67: 	
+68: 	}  // namespace bustub
+69: 	
+70: 	namespace std {
+71: 	template <>
+72: 	struct hash<bustub::RID> {
+73: 		auto operator()(const bustub::RID &obj) const -> size_t { return hash<int64_t>()(obj.Get()); }
+74: 	};
+75: }  // namespace std
+
+(End of file - total 75 lines)
+</content>
+```
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 48.2s)
+
+_Thinking:_
+
+Now I have the full `rid.h` file. Let me produce the documented version following Ahmed's style - tab-indented, `/* */` rationale blocks, `/** */` Doxygen on methods, cross-referencing the B+Tree leaf page where RID is the ValueType.
+
+Key things to document:
+1. File-level rationale: RID = Record Identifier = physical location of a tuple row in heap storage. 8 bytes = 4B page_id_t + 4B uint32_t slot_num. Used as ValueType in B+Tree leaf pages (the "what does the index point to" answer).
+2. The default constructor initializes to an invalid state with page_id_ set to INVALID_PAGE_ID and slot_num_ at zero.
+3. The primary constructor takes a page_id_t and uint32_t to construct a valid RID.
+4. An explicit constructor unpacks a 64-bit integer representation into the two components.
+5. The Get() method packs the page_id_ and slot_num_ back into a single 64-bit integer by shifting page_id_ left 32 bits and ORing with slot_num_.
+6. A hash specialization for std::hash<bustub::RID> is defined in the std namespace to enable RID usage in hash-based containers.
+
+Now I'll write out the complete documented header file.
+
+Here is the fully documented `rid.h`:
+
+```cpp
+//===----------------------------------------------------------------------===//
+//
+//                         BusTub
+//
+// rid.h
+//
+// Identification: src/include/common/rid.h
+//
+// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+//
+//===----------------------------------------------------------------------===//
+
+#pragma once
+
+#include <cstdint>
+#include <sstream>
+#include <string>
+
+#include "common/config.h"
+
+/*
+ * RID — Record Identifier
+ * =======================
+ * A RID is the physical address of a single tuple (row) inside BusTub's heap
+ * storage.  It is a pair:
+ *
+ *   page_id_   (page_id_t  = int32_t)  — which page the tuple lives on
+ *   slot_num_  (uint32_t)              — which slot within that page
+ *
+ * Together they occupy exactly 8 bytes, which is why RID is the ValueType
+ * used by B+Tree leaf pages (see b_plus_tree_leaf_page.h).  Each leaf entry
+ * maps an index key → RID so that an index scan can jump directly to the
+ * correct heap page and slot without a full table scan.
+ *
+ * Packed form
+ * -----------
+ * Get() and the int64_t constructor move between the struct form and a single
+ * 64-bit integer:
+ *
+ *   bits 63-32 : page_id_  (sign-extended int32_t stored in upper 32 bits)
+ *   bits 31-0  : slot_num_ (uint32_t stored in lower 32 bits)
+ *
+ *   pack:   int64_t rid64 = (int64_t(page_id_) << 32) | slot_num_;
+ *   unpack: page_id_  = static_cast<page_id_t>(rid64 >> 32);
+ *           slot_num_ = static_cast<uint32_t>(rid64);          // low 32 bits
+ *
+ * The packed form is used by std::hash<RID> so that a single hash<int64_t>
+ * call covers both fields with no extra work.
+ *
+ * Invalid RID
+ * -----------
+ * The default constructor produces an *invalid* RID:
+ *   page_id_  = INVALID_PAGE_ID  (= -1, defined in common/config.h)
+ *   slot_num_ = 0
+ *
+ * Code that receives a RID should check page_id_ != INVALID_PAGE_ID before
+ * dereferencing it.
+ *
+ * Cross-references
+ * ----------------
+ *   common/config.h                    — INVALID_PAGE_ID, page_id_t
+ *   storage/page/b_plus_tree_leaf_page.h — ValueType = RID in leaf pages;
+ *                                          rid_array_[] stores one RID per slot
+ */
+
+namespace bustub {
+
+	/*
+	 * RID class
+	 * ---------
+	 * Trivially constructible and copyable so it can be stored directly inside
+	 * the fixed-size arrays of B+Tree leaf pages without violating the
+	 * page-is-buffer invariant (no non-trivial ctors/dtors allowed in page
+	 * memory — see b_plus_tree_page.h for the full rationale).
+	 */
+	class RID {
+	 public:
+		/*
+		 * Default constructor — produces an INVALID RID.
+		 *
+		 * page_id_  is value-initialized to INVALID_PAGE_ID (-1).
+		 * slot_num_ is value-initialized to 0.
+		 *
+		 * Always check GetPageId() != INVALID_PAGE_ID before using a
+		 * default-constructed RID.
+		 */
+		/** The default constructor creates an invalid RID! */
+		RID() = default;
+
+		/**
+		 * Creates a new Record Identifier for the given page identifier and slot number.
+		 *
+		 * This is the primary constructor used when a tuple is inserted into a heap
+		 * page and the resulting (page_id, slot) pair must be stored in the B+Tree
+		 * leaf as the value for that key.
+		 *
+		 * @param page_id  page identifier — which heap page holds the tuple
+		 * @param slot_num slot number    — logical offset within that page (0-based)
+		 */
+		RID(page_id_t page_id, uint32_t slot_num) : page_id_(page_id), slot_num_(slot_num) {}
+
+		/**
+		 * Unpacks a RID from its 64-bit packed representation.
+		 *
+		 * Inverse of Get():
+		 *   page_id_  = static_cast<page_id_t>(rid >> 32)   — upper 32 bits
+		 *   slot_num_ = static_cast<uint32_t>(rid)           — lower 32 bits
+		 *
+		 * The explicit keyword prevents accidental implicit conversion from
+		 * int64_t (e.g., an arithmetic result) to a RID.
+		 *
+		 * @param rid 64-bit packed RID produced by Get()
+		 */
+		explicit RID(int64_t rid) : page_id_(static_cast<page_id_t>(rid >> 32)), slot_num_(static_cast<uint32_t>(rid)) {}
+
+		/**
+		 * Packs page_id_ and slot_num_ into a single 64-bit integer.
+		 *
+		 *   bits 63-32 : page_id_  (sign-extended int32_t)
+		 *   bits 31-0  : slot_num_ (uint32_t)
+		 *
+		 * Used by std::hash<RID> (see bottom of this file) and anywhere a
+		 * compact, hashable representation of the RID is needed.
+		 *
+		 * @return 64-bit packed RID
+		 */
+		inline auto Get() const -> int64_t { return (static_cast<int64_t>(page_id_)) << 32 | slot_num_; }
+
+		/** @return the page identifier component of this RID */
+		inline auto GetPageId() const -> page_id_t { return page_id_; }
+
+		/** @return the slot number component of this RID (0-based logical offset) */
+		inline auto GetSlotNum() const -> uint32_t { return slot_num_; }
+
+		/**
+		 * Mutates this RID in place.
+		 *
+		 * Used when a tuple is moved (e.g., after an update that changes the
+		 * tuple's physical location) so that the index entry can be updated
+		 * without constructing a new RID object.
+		 *
+		 * @param page_id  new page identifier
+		 * @param slot_num new slot number
+		 */
+		inline void Set(page_id_t page_id, uint32_t slot_num) {
+			page_id_ = page_id;
+			slot_num_ = slot_num;
+		}
+
+		/** @return human-readable "page_id: X slot_num: Y\n" string */
+		inline auto ToString() const -> std::string {
+			std::stringstream os;
+			os << "page_id: " << page_id_;
+			os << " slot_num: " << slot_num_ << "\n";
+
+			return os.str();
+		}
+
+		/** Streams the result of ToString() — useful for logging and tests. */
+		friend auto operator<<(std::ostream &os, const RID &rid) -> std::ostream & {
+			os << rid.ToString();
+			return os;
+		}
+
+		/**
+		 * Two RIDs are equal iff both page_id_ and slot_num_ match.
+		 *
+		 * Required by the B+Tree when scanning for an exact key→RID pair during
+		 * deletion (ValueIndex in the leaf page iterates rid_array_ using ==).
+		 */
+		auto operator==(const RID &other) const -> bool { return page_id_ == other.page_id_ && slot_num_ == other.slot_num_; }
+
+	 private:
+		/** Which heap page holds the tuple.  INVALID_PAGE_ID (-1) = not yet assigned. */
+		page_id_t page_id_{INVALID_PAGE_ID};
+		/** Logical slot offset within the page, starting from 0. */
+		uint32_t slot_num_{0};  // logical offset from 0, 1...
+	};
+
+}  // namespace bustub
+
+/*
+ * std::hash<bustub::RID>
+ * ----------------------
+ * Specialised outside namespace bustub so that RID can be used as a key in
+ * std::unordered_map / std::unordered_set without any extra boilerplate at the
+ * call site.
+ *
+ * Implementation: delegates to hash<int64_t> applied to Get(), which packs
+ * both fields into a single 64-bit word.  This means the hash is sensitive to
+ * every bit of both page_id_ and slot_num_.
+ */
+namespace std {
+template <>
+struct hash<bustub::RID> {
+	auto operator()(const bustub::RID &obj) const -> size_t { return hash<int64_t>()(obj.Get()); }
+};
+}  // namespace std
+```
+
+That's the full file. The main additions over the original:
+- **File-level block** explaining the physical-address role, the 8-byte layout, the packed 64-bit encoding formula, the invalid-RID convention, and cross-references to `config.h` and `b_plus_tree_leaf_page.h`.
+- **Class-level note** that trivial constructibility is what lets RID live inside `rid_array_[]` without violating the page-is-buffer invariant.
+- **Per-method docs** for every constructor and accessor, including the bit-layout of `Get()`/`RID(int64_t)` and why `explicit` matters.
+- **`std::hash` block** explaining why it lives outside `namespace bustub` and why delegating to `hash<int64_t>(Get())` covers all bits of both fields.
 
 ---
 
