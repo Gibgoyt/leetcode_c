@@ -2,7 +2,7 @@
 
 **Session ID:** ses_1406f60b7ffeN7QN0pMCzwv2XZ
 **Created:** 6/13/2026, 7:59:46 AM
-**Updated:** 6/13/2026, 8:02:46 AM
+**Updated:** 6/13/2026, 11:11:11 AM
 
 ---
 
@@ -13267,6 +13267,1712 @@ That's the full file. The main additions over the original:
 - **Class-level note** that trivial constructibility is what lets RID live inside `rid_array_[]` without violating the page-is-buffer invariant.
 - **Per-method docs** for every constructor and accessor, including the bit-layout of `Get()`/`RID(int64_t)` and why `explicit` matters.
 - **`std::hash` block** explaining why it lives outside `namespace bustub` and why delegating to `hash<int64_t>(Get())` covers all bits of both fields.
+
+---
+
+## User
+
+Awesome! Time to move onto project 2, task 2
+
+Task #2 - B+Tree Operations (Insertion, Deletion, and Point Search)
+
+In this task, your B+Tree Index needs to support insertion (Insert()), deletion (Remove()), and search (GetValue()) for single values. The index should support unique keys; if you try to reinsert an existing key, the insertion should not occur, and false will be returned. You must implement this task by modifying the source file src/storage/index/b_plus_tree.cpp and optionally its corresponding header file src/include/storage/index/b_plus_tree.h .
+
+B+Tree pages should be split (or keys should be redistributed) if an insertion would violate the B+Tree's invariants. Furthermore, leaf page tombstones (and their ordering) must be maintained across any merging, splitting, and redistributing operations. When a leaf is coalesced or redistributed into another leaf, we consider all of its pending deletions to be more recent than any pending deletion in the recipient leaf (in other words, the node with entries being inserted into it should have its tombstones processed first).
+
+If an insertion changes the page ID of the root, you must update the root_page_id in the B+Tree index's header page. You can do this by accessing the header_page_id_ page, which is given to you in the constructor. Then, by using reinterpret cast , you can interpret this page as a BPlusTreeHeaderPage (from src/include/storage/page/b_plus_tree_header_page.h ) and update the root page ID from there. You also must implement GetRootPageId.
+
+Similarly, your B+Tree Index must support merging or redistributing keys between pages, if necessary, to maintain the B+Tree invariants when deleting a key. As with insertions, you must correctly update the B+Tree's root page ID when the root changes.
+
+We recommend using the page guard classes from Project #1 to avoid synchronization issues. You should use ReadPage or WritePage accordingly.
+
+You may optionally use the Context class (defined in src/include/storage/index/b_plus_tree.h ) to track the pages that you've read or written (via the read_set_ and write_set_ fields) or to store other metadata that you need to pass into other functions recursively.
+
+If you are using the Context class, here are some tips:
+
+    You might only need to use write_set_ when inserting or deleting. It is possible that you do not use read_set_, depending on your implementation.
+    You might want to store the root page id in the context and acquire write guard of header page when modifying the B+Tree.
+    To find a parent of the current node, look at the back of write_set_. It should contain all nodes along the access path.
+    You may use BUSTUB_ASSERT to help you find inconsistent data in your implementation. For example, if you want to split a node (except root), you should ensure that there is still at least one node in the write_set_. If you need to split root, you should check if header_page_ is std::nullopt.
+    To unlock the header page, simply set header_page_ to std::nullopt. To unlock other pages, pop from the write_set_ and drop.
+
+The B+Tree is parameterized on arbitrary key, value, and key comparator types. We've defined a macro, INDEX_TEMPLATE_ARGUMENTS, that generates the template parameter declaration for you:
+
+template <typename KeyType,
+          typename ValueType,
+          typename KeyComparator>
+
+The type parameters are:
+
+    KeyType: The type of each key in the index. In practice this will be a GenericKey. The actual size of a GenericKey varies, and is specified with its own template argument that depends on the type of indexed attribute.
+    ValueType: The type of each value in the index. In practice, this will be a 64-bit RID.
+    KeyComparator: A class used to compare whether two KeyType instances are less than, greater than, or equal to each other. These will be included in the KeyType implementation files. 
+
+Please read the following files:
+./bustub/src/include/storage/index/b_plus_tree.h
+./bustub/src/storage/index/b_plus_tree.cpp
+./bustub/src/include/storage/page/b_plus_tree_header_page.h
+./project_2/README.md
+
+Please return to me the following files with updated docs/comments:
+b_plus_tree.{h,cpp}
+b_plus_tree_header_page.h
+remember! do not use Write() tool! just return the entire file with updated comments back to me and I will make sure to write the file
+
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 8.8s)
+
+_Thinking:_
+
+The user wants me to read the specified files and return documented versions of `b_plus_tree.h`, `b_plus_tree.cpp`, and `b_plus_tree_header_page.h` with comprehensive comments/docs. I'm in plan mode so I can read files but not write them - and since the user wants me to return the files as text in the chat (not use Write()), that's fine.
+
+Let me read all the specified files first.
+
+Reading all four files now before producing any output.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/index/b_plus_tree.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/index/b_plus_tree.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree.h
+6: //
+7: // Identification: src/include/storage/index/b_plus_tree.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: /**
+14:  * b_plus_tree.h
+15:  *
+16:  * Implementation of simple b+ tree data structure where internal pages direct
+17:  * the search and leaf pages contain actual data.
+18:  * (1) We only support unique key
+19:  * (2) support insert & remove
+20:  * (3) The structure should shrink and grow dynamically
+21:  * (4) Implement index iterator for range scan
+22:  */
+23: #pragma once
+24: 
+25: #include <algorithm>
+26: #include <deque>
+27: #include <filesystem>
+28: #include <iostream>
+29: #include <memory>
+30: #include <optional>
+31: #include <queue>
+32: #include <shared_mutex>
+33: #include <string>
+34: #include <vector>
+35: 
+36: #include "common/config.h"
+37: #include "common/macros.h"
+38: #include "storage/index/index_iterator.h"
+39: #include "storage/page/b_plus_tree_header_page.h"
+40: #include "storage/page/b_plus_tree_internal_page.h"
+41: #include "storage/page/b_plus_tree_leaf_page.h"
+42: #include "storage/page/page_guard.h"
+43: 
+44: namespace bustub {
+45: 
+46: struct PrintableBPlusTree;
+47: 
+48: /**
+49:  * @brief Definition of the Context class.
+50:  *
+51:  * Hint: This class is designed to help you keep track of the pages
+52:  * that you're modifying or accessing.
+53:  */
+54: class Context {
+55:  public:
+56:   // When you insert into / remove from the B+ tree, store the write guard of header page here.
+57:   // Remember to drop the header page guard and set it to nullopt when you want to unlock all.
+58:   std::optional<WritePageGuard> header_page_{std::nullopt};
+59: 
+60:   // Save the root page id here so that it's easier to know if the current page is the root page.
+61:   page_id_t root_page_id_{INVALID_PAGE_ID};
+62: 
+63:   // Store the write guards of the pages that you're modifying here.
+64:   std::deque<WritePageGuard> write_set_;
+65: 
+66:   // You may want to use this when getting value, but not necessary.
+67:   std::deque<ReadPageGuard> read_set_;
+68: 
+69:   auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+70: };
+71: 
+72: #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
+73: 
+74: // Main class providing the API for the Interactive B+ Tree.
+75: FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
+76: class BPlusTree {
+77:   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
+78:   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>;
+79: 
+80:  public:
+81:   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
+82:                      const KeyComparator &comparator, int leaf_max_size = LEAF_PAGE_SLOT_CNT,
+83:                      int internal_max_size = INTERNAL_PAGE_SLOT_CNT);
+84: 
+85:   // Returns true if this B+ tree has no keys and values.
+86:   auto IsEmpty() const -> bool;
+87: 
+88:   // Insert a key-value pair into this B+ tree.
+89:   auto Insert(const KeyType &key, const ValueType &value) -> bool;
+90: 
+91:   // Remove a key and its value from this B+ tree.
+92:   void Remove(const KeyType &key);
+93: 
+94:   // Return the value associated with a given key
+95:   auto GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool;
+96: 
+97:   // Return the page id of the root node
+98:   auto GetRootPageId() -> page_id_t;
+99: 
+100:   // Index iterator
+101:   auto Begin() -> INDEXITERATOR_TYPE;
+102: 
+103:   auto End() -> INDEXITERATOR_TYPE;
+104: 
+105:   auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
+106: 
+107:   void Print(BufferPoolManager *bpm);
+108: 
+109:   void Draw(BufferPoolManager *bpm, const std::filesystem::path &outf);
+110: 
+111:   auto DrawBPlusTree() -> std::string;
+112: 
+113:   // read data from file and insert one by one
+114:   void InsertFromFile(const std::filesystem::path &file_name);
+115: 
+116:   // read data from file and remove one by one
+117:   void RemoveFromFile(const std::filesystem::path &file_name);
+118: 
+119:   void BatchOpsFromFile(const std::filesystem::path &file_name);
+120: 
+121:   // Do not change this type to a BufferPoolManager!
+122:   std::shared_ptr<TracedBufferPoolManager> bpm_;
+123: 
+124:  private:
+125:   void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
+126: 
+127:   void PrintTree(page_id_t page_id, const BPlusTreePage *page);
+128: 
+129:   auto ToPrintableBPlusTree(page_id_t root_id) -> PrintableBPlusTree;
+130: 
+131:   // member variable
+132:   std::string index_name_;
+133:   KeyComparator comparator_;
+134:   std::vector<std::string> log;  // NOLINT
+135:   int leaf_max_size_;
+136:   int internal_max_size_;
+137:   page_id_t header_page_id_;
+138: };
+139: 
+140: /**
+141:  * @brief for test only. PrintableBPlusTree is a printable B+ tree.
+142:  * We first convert B+ tree into a printable B+ tree and the print it.
+143:  */
+144: struct PrintableBPlusTree {
+145:   int size_;
+146:   std::string keys_;
+147:   std::vector<PrintableBPlusTree> children_;
+148: 
+149:   /**
+150:    * @brief BFS traverse a printable B+ tree and print it into
+151:    * into out_buf
+152:    *
+153:    * @param out_buf
+154:    */
+155:   void Print(std::ostream &out_buf) {
+156:     std::vector<PrintableBPlusTree *> que = {this};
+157:     while (!que.empty()) {
+158:       std::vector<PrintableBPlusTree *> new_que;
+159: 
+160:       for (auto &t : que) {
+161:         int padding = (t->size_ - t->keys_.size()) / 2;
+162:         out_buf << std::string(padding, ' ');
+163:         out_buf << t->keys_;
+164:         out_buf << std::string(padding, ' ');
+165: 
+166:         for (auto &c : t->children_) {
+167:           new_que.push_back(&c);
+168:         }
+169:       }
+170:       out_buf << "\n";
+171:       que = new_que;
+172:     }
+173:   }
+174: };
+175: 
+176: }  // namespace bustub
+
+(End of file - total 176 lines)
+</content>
+```
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 126.7s)
+
+_Thinking:_
+
+Let me read the remaining two files that I need to document: `b_plus_tree.cpp` and `b_plus_tree_header_page.h`.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/storage/index/b_plus_tree.cpp"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/storage/index/b_plus_tree.cpp</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree.cpp
+6: //
+7: // Identification: src/storage/index/b_plus_tree.cpp
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #include "storage/index/b_plus_tree.h"
+14: #include "buffer/traced_buffer_pool_manager.h"
+15: #include "storage/index/b_plus_tree_debug.h"
+16: 
+17: namespace bustub {
+18: 
+19: FULL_INDEX_TEMPLATE_ARGUMENTS
+20: BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
+21:                           const KeyComparator &comparator, int leaf_max_size, int internal_max_size)
+22:     : bpm_(std::make_shared<TracedBufferPoolManager>(buffer_pool_manager)),
+23:       index_name_(std::move(name)),
+24:       comparator_(std::move(comparator)),
+25:       leaf_max_size_(leaf_max_size),
+26:       internal_max_size_(internal_max_size),
+27:       header_page_id_(header_page_id) {
+28:   WritePageGuard guard = bpm_->WritePage(header_page_id_);
+29:   auto root_page = guard.AsMut<BPlusTreeHeaderPage>();
+30:   root_page->root_page_id_ = INVALID_PAGE_ID;
+31: }
+32: 
+33: /**
+34:  * @brief Helper function to decide whether current b+tree is empty
+35:  * @return Returns true if this B+ tree has no keys and values.
+36:  */
+37: FULL_INDEX_TEMPLATE_ARGUMENTS
+38: auto BPLUSTREE_TYPE::IsEmpty() const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+39: 
+40: /*****************************************************************************
+41:  * SEARCH
+42:  *****************************************************************************/
+43: /**
+44:  * @brief Return the only value that associated with input key
+45:  *
+46:  * This method is used for point query
+47:  *
+48:  * @param key input key
+49:  * @param[out] result vector that stores the only value that associated with input key, if the value exists
+50:  * @return : true means key exists
+51:  */
+52: FULL_INDEX_TEMPLATE_ARGUMENTS
+53: auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool {
+54:   UNIMPLEMENTED("TODO(P2): Add implementation.");
+55:   // Declaration of context instance. Using the Context is not necessary but advised.
+56:   Context ctx;
+57: }
+58: 
+59: /*****************************************************************************
+60:  * INSERTION
+61:  *****************************************************************************/
+62: /**
+63:  * @brief Insert constant key & value pair into b+ tree
+64:  *
+65:  * if current tree is empty, start new tree, update root page id and insert
+66:  * entry; otherwise, insert into leaf page.
+67:  *
+68:  * @param key the key to insert
+69:  * @param value the value associated with key
+70:  * @return: since we only support unique key, if user try to insert duplicate
+71:  * keys return false; otherwise, return true.
+72:  */
+73: FULL_INDEX_TEMPLATE_ARGUMENTS
+74: auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
+75:   UNIMPLEMENTED("TODO(P2): Add implementation.");
+76:   // Declaration of context instance. Using the Context is not necessary but advised.
+77:   Context ctx;
+78: }
+79: 
+80: /*****************************************************************************
+81:  * REMOVE
+82:  *****************************************************************************/
+83: /**
+84:  * @brief Delete key & value pair associated with input key
+85:  * If current tree is empty, return immediately.
+86:  * If not, User needs to first find the right leaf page as deletion target, then
+87:  * delete entry from leaf page. Remember to deal with redistribute or merge if
+88:  * necessary.
+89:  *
+90:  * @param key input key
+91:  */
+92: FULL_INDEX_TEMPLATE_ARGUMENTS
+93: void BPLUSTREE_TYPE::Remove(const KeyType &key) {
+94:   // Declaration of context instance.
+95:   Context ctx;
+96:   UNIMPLEMENTED("TODO(P2): Add implementation.");
+97: }
+98: 
+99: /*****************************************************************************
+100:  * INDEX ITERATOR
+101:  *****************************************************************************/
+102: /**
+103:  * @brief Input parameter is void, find the leftmost leaf page first, then construct
+104:  * index iterator
+105:  *
+106:  * You may want to implement this while implementing Task #3.
+107:  *
+108:  * @return : index iterator
+109:  */
+110: FULL_INDEX_TEMPLATE_ARGUMENTS
+111: auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+112: 
+113: /**
+114:  * @brief Input parameter is low key, find the leaf page that contains the input key
+115:  * first, then construct index iterator
+116:  * @return : index iterator
+117:  */
+118: FULL_INDEX_TEMPLATE_ARGUMENTS
+119: auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+120: 
+121: /**
+122:  * @brief Input parameter is void, construct an index iterator representing the end
+123:  * of the key/value pair in the leaf node
+124:  * @return : index iterator
+125:  */
+126: FULL_INDEX_TEMPLATE_ARGUMENTS
+127: auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+128: 
+129: /**
+130:  * @return Page id of the root of this tree
+131:  *
+132:  * You may want to implement this while implementing Task #3.
+133:  */
+134: FULL_INDEX_TEMPLATE_ARGUMENTS
+135: auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+136: 
+137: template class BPlusTree<GenericKey<4>, RID, GenericComparator<4>>;
+138: 
+139: template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>>;
+140: template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 3>;
+141: template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 2>;
+142: template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 1>;
+143: template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, -1>;
+144: 
+145: template class BPlusTree<GenericKey<16>, RID, GenericComparator<16>>;
+146: 
+147: template class BPlusTree<GenericKey<32>, RID, GenericComparator<32>>;
+148: 
+149: template class BPlusTree<GenericKey<64>, RID, GenericComparator<64>>;
+150: 
+151: }  // namespace bustub
+
+(End of file - total 151 lines)
+</content>
+```
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_header_page.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/page/b_plus_tree_header_page.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree_header_page.h
+6: //
+7: // Identification: src/include/storage/page/b_plus_tree_header_page.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: #pragma once
+14: 
+15: #include "common/config.h"
+16: 
+17: namespace bustub {
+18: 
+19: /**
+20:  * The header page is just used to retrieve the root page,
+21:  * preventing potential race condition under concurrent environment.
+22:  */
+23: class BPlusTreeHeaderPage {
+24:  public:
+25:   // Delete all constructor / destructor to ensure memory safety
+26:   BPlusTreeHeaderPage() = delete;
+27:   BPlusTreeHeaderPage(const BPlusTreeHeaderPage &other) = delete;
+28: 
+29:   page_id_t root_page_id_;
+30: };
+31: 
+32: }  // namespace bustub
+
+(End of file - total 32 lines)
+</content>
+```
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 18.3s)
+
+_Thinking:_
+
+Now I have all three files. Let me produce the documented versions of all three files. Let me recall the context:
+
+1. `b_plus_tree_header_page.h` - Very simple, 32 lines. Just a header page with `root_page_id_`. This is the "indirection page" that holds the root page id, preventing race conditions on root page changes.
+
+2. `b_plus_tree.cpp` - 151 lines. Constructor initializes the header page. All methods have `UNIMPLEMENTED` stubs. Multiple template instantiations at bottom.
+
+3. `b_plus_tree.h` - 176 lines (already read in previous session). I need to document this from memory of what we read.
+Now I'm reconstructing the header file structure. It defines a Context class that manages transaction state with optional write access to the header page, tracks the current root page ID, and maintains separate deques for write and read page guards. There's also a helper method to check if a given page is the root, plus the start of a macro for template instantiation.
+
+The BPlusTree class template uses internal and leaf page types parameterized by key, value, and comparator types. The constructor takes a tree name, header page ID, buffer pool manager, and comparator, with configurable max sizes for leaf and internal nodes. The public interface includes methods to check if the tree is empty, insert key-value pairs, remove entries, and retrieve values by key. I notice the file has been modified, so I need to re-read the current version of `b_plus_tree.h` to see what changes have been made before I can document it properly.
+
+Let me re-read `b_plus_tree.h` since the git status shows it has been modified.
+
+**Tool: read**
+
+**Input:**
+```json
+{
+  "filePath": "/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/index/b_plus_tree.h"
+}
+```
+
+**Output:**
+```
+<path>/home/user/Projects/C/cmu_15_445/bustub/src/include/storage/index/b_plus_tree.h</path>
+<type>file</type>
+<content>
+1: //===----------------------------------------------------------------------===//
+2: //
+3: //                         BusTub
+4: //
+5: // b_plus_tree.h
+6: //
+7: // Identification: src/include/storage/index/b_plus_tree.h
+8: //
+9: // Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+10: //
+11: //===----------------------------------------------------------------------===//
+12: 
+13: /**
+14:  * b_plus_tree.h
+15:  *
+16:  * Implementation of simple b+ tree data structure where internal pages direct
+17:  * the search and leaf pages contain actual data.
+18:  * (1) We only support unique key
+19:  * (2) support insert & remove
+20:  * (3) The structure should shrink and grow dynamically
+21:  * (4) Implement index iterator for range scan
+22:  */
+23: #pragma once
+24: 
+25: #include <algorithm>
+26: #include <deque>
+27: #include <filesystem>
+28: #include <iostream>
+29: #include <memory>
+30: #include <optional>
+31: #include <queue>
+32: #include <shared_mutex>
+33: #include <string>
+34: #include <vector>
+35: 
+36: #include "common/config.h"
+37: #include "common/macros.h"
+38: #include "storage/index/index_iterator.h"
+39: #include "storage/page/b_plus_tree_header_page.h"
+40: #include "storage/page/b_plus_tree_internal_page.h"
+41: #include "storage/page/b_plus_tree_leaf_page.h"
+42: #include "storage/page/page_guard.h"
+43: 
+44: namespace bustub {
+45: 	
+46: 	struct PrintableBPlusTree;
+47: 	
+48: 	/**
+49: 		* @brief Definition of the Context class.
+50: 		*
+51: 		* Hint: This class is designed to help you keep track of the pages
+52: 		* that you're modifying or accessing.
+53: 		*/
+54: 	class Context {
+55: 		public:
+56: 			// When you insert into / remove from the B+ tree, store the write guard of header page here.
+57: 			// Remember to drop the header page guard and set it to nullopt when you want to unlock all.
+58: 			std::optional<WritePageGuard> header_page_{std::nullopt};
+59: 	
+60: 			// Save the root page id here so that it's easier to know if the current page is the root page.
+61: 			page_id_t root_page_id_{INVALID_PAGE_ID};
+62: 	
+63: 			// Store the write guards of the pages that you're modifying here.
+64: 			std::deque<WritePageGuard> write_set_;
+65: 	
+66: 			// You may want to use this when getting value, but not necessary.
+67: 			std::deque<ReadPageGuard> read_set_;
+68: 	
+69: 			auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+70: 	};
+71: 	
+72: 	#define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
+73: 	
+74: 	// Main class providing the API for the Interactive B+ Tree.
+75: 	FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
+76: 	class BPlusTree {
+77: 			using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
+78: 			using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>;
+79: 	
+80: 		public:
+81: 			explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
+82: 							           const KeyComparator &comparator, int leaf_max_size = LEAF_PAGE_SLOT_CNT,
+83: 							           int internal_max_size = INTERNAL_PAGE_SLOT_CNT);
+84: 	
+85: 			// Returns true if this B+ tree has no keys and values.
+86: 			auto IsEmpty() const -> bool;
+87: 	
+88: 			// Insert a key-value pair into this B+ tree.
+89: 			auto Insert(const KeyType &key, const ValueType &value) -> bool;
+90: 	
+91: 			// Remove a key and its value from this B+ tree.
+92: 			void Remove(const KeyType &key);
+93: 	
+94: 			// Return the value associated with a given key
+95: 			auto GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool;
+96: 	
+97: 			// Return the page id of the root node
+98: 			auto GetRootPageId() -> page_id_t;
+99: 	
+100: 			// Index iterator
+101: 			auto Begin() -> INDEXITERATOR_TYPE;
+102: 	
+103: 			auto End() -> INDEXITERATOR_TYPE;
+104: 	
+105: 			auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
+106: 	
+107: 			void Print(BufferPoolManager *bpm);
+108: 	
+109: 			void Draw(BufferPoolManager *bpm, const std::filesystem::path &outf);
+110: 	
+111: 			auto DrawBPlusTree() -> std::string;
+112: 	
+113: 			// read data from file and insert one by one
+114: 			void InsertFromFile(const std::filesystem::path &file_name);
+115: 	
+116: 			// read data from file and remove one by one
+117: 			void RemoveFromFile(const std::filesystem::path &file_name);
+118: 	
+119: 			void BatchOpsFromFile(const std::filesystem::path &file_name);
+120: 	
+121: 			// Do not change this type to a BufferPoolManager!
+122: 			std::shared_ptr<TracedBufferPoolManager> bpm_;
+123: 	
+124: 		private:
+125: 			void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
+126: 	
+127: 			void PrintTree(page_id_t page_id, const BPlusTreePage *page);
+128: 	
+129: 			auto ToPrintableBPlusTree(page_id_t root_id) -> PrintableBPlusTree;
+130: 	
+131: 			// member variable
+132: 			std::string index_name_;
+133: 			KeyComparator comparator_;
+134: 			std::vector<std::string> log;  // NOLINT
+135: 			int leaf_max_size_;
+136: 			int internal_max_size_;
+137: 			page_id_t header_page_id_;
+138: 	};
+139: 	
+140: 	/**
+141: 		* @brief for test only. PrintableBPlusTree is a printable B+ tree.
+142: 		* We first convert B+ tree into a printable B+ tree and the print it.
+143: 		*/
+144: 	struct PrintableBPlusTree {
+145: 			int size_;
+146: 			std::string keys_;
+147: 			std::vector<PrintableBPlusTree> children_;
+148: 	
+149: 			/**
+150: 			 * @brief BFS traverse a printable B+ tree and print it into
+151: 			 * into out_buf
+152: 			 *
+153: 			 * @param out_buf
+154: 			 */
+155: 			void Print(std::ostream &out_buf) {
+156: 				std::vector<PrintableBPlusTree *> que = {this};
+157: 				while (!que.empty()) {
+158: 					std::vector<PrintableBPlusTree *> new_que;
+159: 	
+160: 					for (auto &t : que) {
+161: 						int padding = (t->size_ - t->keys_.size()) / 2;
+162: 						out_buf << std::string(padding, ' ');
+163: 						out_buf << t->keys_;
+164: 						out_buf << std::string(padding, ' ');
+165: 	
+166: 						for (auto &c : t->children_) {
+167: 							new_que.push_back(&c);
+168: 						}
+169: 					}
+170: 					out_buf << "\n";
+171: 					que = new_que;
+172: 				}
+173: 			}
+174: 	};
+175: 	
+176: }  // namespace bustub
+
+(End of file - total 176 lines)
+</content>
+```
+
+---
+
+## Assistant (Plan · Claude Fable 5 · 400.1s)
+
+_Thinking:_
+
+Now I have all three files. Let me produce the documented versions of all three. I'll produce them in order:
+
+1. `b_plus_tree_header_page.h`
+2. `b_plus_tree.h`
+3. `b_plus_tree.cpp`
+
+Let me think through what documentation to add for each:
+
+**`b_plus_tree_header_page.h`** (32 lines):
+- Very simple class — just holds `root_page_id_`
+- Key insight: this is the "indirection layer" that prevents race conditions when the root page changes (a root split creates a new root page, meaning `root_page_id_` changes; having a dedicated header page lets you hold a write latch on THIS page while swapping the root, rather than needing a global tree latch)
+- Follows the page-is-buffer pattern: constructor is deleted and the object lives in a BPM frame
+- `root_page_id_` initializes to `INVALID_PAGE_ID` until the BPlusTree constructor sets it
+
+**`b_plus_tree.h`** (176 lines):
+- Context class that acts as a state machine for traversal operations
+- `header_page_` holds a write latch during insert/remove operations; releasing it means dropping the root pointer lock
+- `root_page_id_` is a cached snapshot to avoid re-reading the header page on every root check
+- `write_set_` accumulates latches during the write path for insert and remove operations
+- `read_set_` tracks latches during the read path for GetValue, allowing earlier release once the child is pinned
+- `IsRootPage` is a helper that checks against the cached root ID
+- BPLUSTREE_TYPE macro provides shorthand for method definitions in the implementation file
+- BPlusTree class uses type aliases for InternalPage and LeafPage to simplify casting
+- Constructor accepts a raw BufferPoolManager pointer but wraps it in a TracedBufferPoolManager for debugging with CMU's test harness
+- `bpm_` is public (not private) intentionally—CMU's test harness depends on this, so the type is locked in place
+- `header_page_id_` is permanent and never changes; it's the BPM page storing the root pointer
+- `leaf_max_size_` defines the maximum capacity for leaf nodes
+
+, while `internal_max_size_` can differ and both default based on page size and slot struct size
+- Debug methods like Print, Draw, and batch operations aren't part of the core implementation
+- PrintableBPlusTree is a test-only BFS-based pretty-printer that tracks display width and node keys for visualization
+- In the constructor, the raw BPM gets wrapped in TracedBufferPoolManager, then a write guard is acquired on the header page to initialize the root as INVALID_PAGE_ID—this is the only time the header page is written outside of Insert operations
+- All the main methods have UNIMPLEMENTED stubs waiting for the student's implementation, with Context declared in each to track traversal state
+- There are 9 template instantiations covering GenericKey variants with different sizes paired against RID, plus some with tombstone support where NumTombs=-1 represents the disabled tombstone sentinel
+
+Now I'm documenting the three header files with comprehensive comments. The b_plus_tree.h file already uses tabs throughout, so I'll match that style and add detailed explanations for the algorithms and data structures.
+
+Writing documented header files... The header page is never allocated on the heap—instead, the buffer pool manager hands you a raw 4 KiB frame that you reinterpret as a BPlusTreeHeaderPage, with constructors and destructors deleted to prevent accidental misuse. The only initialization happens once during tree construction, when the root page id is set to an invalid value.
+
+The header page persists for the entire lifetime of the index, with its page id remaining constant while only the root page id changes as the tree grows through splits or shrinks through merges. I'm defining the class structure with deleted constructors and copy operations to enforce memory safety, and documenting that writers hold a guard on this header page whenever they might need to update the root.
+
+Writing B+ tree header file... Pages are reinterpreted from raw buffer frames rather than heap-allocated. The tree maintains several invariants: unique keys only, size constraints on non-root pages, linked leaf pages for range scans, and a sentinel key at the start of internal pages. I'm also noting the template parameters that define the key and value types for the index. Including the necessary header files for the B+ tree implementation, and defining a traversal context struct that bundles the state needed for recursive tree operations like insert, remove, and search — this helps avoid threading multiple parameters through helper functions.
+
+The context also manages latch crabbing for concurrent access: as we descend the tree, we acquire latches on child pages and release ancestor latches if the child is safe (won't split or merge), otherwise we keep them to handle propagation upward. The context holds page guards that automatically release their latches when destroyed, so we can drop the entire context to release all held latches at once.
+
+The header page guard is acquired at the start of Insert or Remove operations since either might change the root, and we drop it as soon as we're certain the root won't change to allow concurrent readers to proceed. We also cache a snapshot of the root page ID to avoid re-reading the header on every comparison.
+
+The write_set_ is a deque that accumulates write guards for pages along the path from root to current node, with new pages pushed to the back as we descend and released from the front once we determine an ancestor is safe to unlatch. On Insert, the back of the deque holds the leaf where the new key lands; on Remove, it holds the leaf from which the key is deleted. Any remaining write latches are automatically released when the Context is destroyed.
+
+I'm also tracking a read_set_ deque for the read path, which holds read guards that block concurrent writers but allow other readers, and we can release parent guards as soon as we've latched the child since we don't need to hold the entire path for a pure read operation. There's also a helper method to check if a given page ID is the current root, which compares against the locally-cached root_page_id_ to avoid repeatedly acquiring the header-page latch.
+
+I'm defining a macro that expands to the full B+ tree template with four parameters (KeyType, ValueType, KeyComparator, NumTombs) so that out-of-line method definitions in the .cpp file don't have to repeat this lengthy template signature every time. The main B+ tree index class provides Insert, Remove, GetValue operations and range-scan iterators over a persistent B+ tree. These type aliases simplify casting BPM frames to the correct page types throughout the implementation. The tree maintains a permanent header page pointer rather than storing the root directly, which allows atomic root updates under concurrent access by holding write latches on the header page during modifications. Now I'm looking at the main BPlusTree class definition with its template parameters.
+
+The constructor wraps the buffer pool manager in a tracing layer and initializes the tree as empty by acquiring a write guard on the header page and setting the root to an invalid page ID. Continuing with the constructor parameters for leaf and internal page sizes, then moving into the IsEmpty method which acquires a read guard on the header page. Continuing with the insertion logic: I descend to the correct leaf using latch crabbing to minimize lock contention, then insert the key-value pair. If the leaf overflows, I split it by allocating a sibling, moving the upper half of keys there, and pushing the middle key up to the parent—recursively splitting parents if needed, and creating a new root if the root itself splits. When a key is deleted from a leaf, I handle tombstones if they exist by adding the key index to a ring buffer that applies the oldest deletion when full, otherwise I physically remove the slot. If the leaf becomes too small, I try redistributing from a sibling or merge it with one and remove the separator from the parent, propagating merges upward until the tree stabilizes or the root shrinks if it's left with a single child.
+
+Now I'm moving on to the Get operation, which performs a point query by acquiring a read lock on the header page, descending through internal nodes using the routing invariant to find the correct path, then binary-searching the leaf for the key while skipping tombstoned entries.
+
+I also need to implement a method to retrieve the root page ID from the header page under a read latch, returning an invalid page ID if the tree is empty.
+
+Now I'm defining the iterator interface—a Begin() method that finds the leftmost leaf by descending the tree and wraps it in an iterator, an End() method that returns a sentinel iterator for the past-the-end position, and a method to construct an iterator pointing to the first entry greater than or equal to a given key.
+
+I'm also adding utility methods for debugging: Print() to output the tree structure, Draw() to generate a Graphviz visualization, and DrawBPlusTree() to return a string representation. There's also a bulk-load method starting to be defined.
+
+Adding bulk operation methods... Defining helper methods and member variables for the B+ tree index, including the conversion function for printable tree representation, the index name, key comparator, and configuration for leaf page splitting thresholds.
+
+Now I'm setting up the maximum slot counts for internal pages and the header page reference that tracks the root node.
+
+I'm also defining a PrintableBPlusTree struct for testing purposes — it mirrors the actual tree structure in a way that's easy to visualize, storing display width, formatted keys, and child nodes so we can do a breadth-first traversal and center-align the output. Finishing the BFS traversal by processing each level, padding the node keys for centered alignment, collecting child pointers for the next level, and printing a newline between levels. Then closing out the PrintableBPlusTree class and the bustub namespace before moving into the b_plus_tree.cpp implementation file. The template instantiations include variations with different NumTombs values, where -1 acts as a sentinel to disable tombstones entirely. The file contains stub implementations that will abort at runtime, and I need to implement them across three tasks: first handling basic insert, retrieval, and removal operations, then adding iterator support with begin/end methods and root page ID tracking. Writing constructor implementation... Now I'm moving on to implement the search functionality, starting with the IsEmpty method and then the point query search. The algorithm involves acquiring a read lock on the header page to get the root page ID, checking if the tree is empty, and then descending through internal pages using binary search to find the appropriate child pointer while managing latch crabbing for the read set. Now I'm moving on to the insertion operation, which starts by acquiring a write guard on the header page to cache the root page ID, then either creates a new leaf if the tree is empty or descends to the appropriate leaf using latch crabbing to maintain write locks along the path.
+
+A node is considered safe for insertion if it has room before reaching max capacity, allowing me to release all ancestor guards once I find such a node. If the key already exists in the leaf, I return false to enforce the unique key constraint, otherwise I insert the key-value pair in sorted order. When a leaf overflows, I split it by allocating a sibling leaf, moving the upper half of entries there, linking them together, and pushing the sibling's first key up to the parent—then recursively handling any parent overflow by splitting internal pages as needed, and if the root itself splits, I allocate a new root and update the header.
+
+The Insert function returns true on successful insertion and false if attempting to insert a duplicate key. I'm implementing the core insertion logic with a context instance to manage the tree traversal and locking.
+
+For the Remove operation, I need to handle the deletion process by first acquiring write access to the header page, then descending through the tree using latch crabbing to find the target leaf. A node is considered safe for removal if its size exceeds the minimum threshold, allowing me to release locks on ancestor nodes. On the leaf itself, I'll either buffer deletions as tombstones when the ring is full, or physically remove slots directly. If the leaf underflows after deletion, I'll need to handle redistribution or merging with sibling nodes. Now I'm looking at the Begin() method for the index iterator, which needs to find the leftmost leaf page and construct an iterator from it. The algorithm starts by reading the header to get the root page ID, returns early if the tree is empty, then traverses down the left spine of the tree until reaching a leaf, and finally constructs the iterator at that position.
+
+For the overloaded Begin(key) variant, I need to descend to the leaf that would contain the given key using the same logic as GetValue, then locate the first slot where the key is greater than or equal to the search key, and return an iterator positioned at that slot.
+
+Now I'm looking at the End() function, which should return a sentinel iterator representing the past-the-end position—typically constructed with a null buffer pool manager or an invalid guard to signal that iteration has completed.
+
+I also see GetRootPageId() needs to acquire a read guard on the header page and return the root page ID stored there.
+
+At the bottom, there's a section on explicit template instantiations that forces the compiler to generate the full BPlusTree class for various key and value type combinations used throughout the system, including different key widths and tombstone buffer configurations. Finishing the template instantiations for the B+ tree with the 64-bit key variant, then closing out the namespace. Now I'm reviewing the indentation in the header file to make sure it matches the original formatting with tabs throughout, and double-checking some of the field definitions like the log member.
+
+Looking at the private debug helper methods—`ToGraph`, `PrintTree`, and `ToPrintableBPlusTree`—I'll add brief documentation for these internal utilities. The `log` field has a `// NOLINT` comment that CMU intentionally left there because the variable doesn't follow the trailing underscore naming convention, so I'm preserving that as-is.
+
+For the Context class, I need to keep the original detailed comments about `header_page_`, `root_page_id_`, `write_set_`, and `read_set_` intact, then enhance them with fuller documentation rather than replacing them. Now I'm ready to write out all three files clearly for manual entry.
+
+Now I have everything. Here are all three documented files:
+
+---
+
+## 1. `bustub/src/include/storage/page/b_plus_tree_header_page.h`
+
+```cpp
+//===----------------------------------------------------------------------===//
+//
+//                         BusTub
+//
+// b_plus_tree_header_page.h
+//
+// Identification: src/include/storage/page/b_plus_tree_header_page.h
+//
+// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+//
+//===----------------------------------------------------------------------===//
+
+#pragma once
+
+#include "common/config.h"
+
+namespace bustub {
+
+/**
+ * BPlusTreeHeaderPage — the "root pointer" page for the B+ tree.
+ *
+ * WHY THIS EXISTS
+ * ───────────────
+ * A naïve B+ tree stores root_page_id_ as a plain member variable.
+ * That works single-threaded, but breaks under concurrency: when a root
+ * split happens, two concurrent readers can observe different root ids
+ * depending on when they read the variable.
+ *
+ * BusTub solves this with one level of indirection.  A single dedicated
+ * BPM page (always at header_page_id_) stores the current root's page_id.
+ * Any thread that needs to read or change the root first acquires the BPM
+ * read/write latch on THIS page, which serialises all root-pointer changes
+ * without requiring a coarse tree-wide mutex.
+ *
+ * PAGE-IS-BUFFER PATTERN
+ * ──────────────────────
+ * Like every other B+ tree page, BPlusTreeHeaderPage is NEVER heap-allocated.
+ * The BPM hands you a raw 4 KiB frame and you reinterpret_cast it:
+ *
+ *   WritePageGuard guard = bpm->WritePage(header_page_id_);
+ *   auto *hdr = guard.AsMut<BPlusTreeHeaderPage>();
+ *
+ * Constructors and destructors are deleted to prevent accidental
+ * stack / heap allocation.  The only "initialisation" is writing
+ * INVALID_PAGE_ID to root_page_id_, which BPlusTree::BPlusTree() does
+ * exactly once at construction time.
+ *
+ * LIFETIME
+ * ────────
+ * One header page exists for the entire lifetime of the index.  Its
+ * page_id (header_page_id_ in BPlusTree) never changes.  Only the
+ * VALUE of root_page_id_ changes as the tree grows (root splits) or
+ * shrinks (root underflows and its only child becomes the new root).
+ */
+class BPlusTreeHeaderPage {
+ public:
+  /* Delete all constructor / destructor to ensure memory safety */
+  BPlusTreeHeaderPage() = delete;
+  BPlusTreeHeaderPage(const BPlusTreeHeaderPage &other) = delete;
+
+  /**
+   * @brief Page id of the current root node of the B+ tree.
+   *
+   * Set to INVALID_PAGE_ID when the tree is empty — either before any key
+   * has been inserted, or after the last key has been removed.
+   *
+   * Writers (Insert / Remove) hold the WritePageGuard on this header page
+   * for the duration of any operation that may change the root:
+   *   - Root split: old root splits → new root internal page is allocated;
+   *     root_page_id_ updated to the new root's page_id.
+   *   - Root underflow: root has one child left → that child becomes the
+   *     new root; root_page_id_ updated, old root page freed.
+   *
+   * The guard is released (via Context::header_page_.reset()) as soon as
+   * the operation confirms the root will not change, allowing concurrent
+   * readers to proceed.
+   */
+  page_id_t root_page_id_;
+};
+
+}  // namespace bustub
+```
+
+---
+
+## 2. `bustub/src/include/storage/index/b_plus_tree.h`
+
+```cpp
+//===----------------------------------------------------------------------===//
+//
+//                         BusTub
+//
+// b_plus_tree.h
+//
+// Identification: src/include/storage/index/b_plus_tree.h
+//
+// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+//
+//===----------------------------------------------------------------------===//
+
+/**
+ * b_plus_tree.h
+ *
+ * Implementation of simple b+ tree data structure where internal pages direct
+ * the search and leaf pages contain actual data.
+ * (1) We only support unique key
+ * (2) support insert & remove
+ * (3) The structure should shrink and grow dynamically
+ * (4) Implement index iterator for range scan
+ *
+ * HIGH-LEVEL ARCHITECTURE
+ * ───────────────────────
+ * Three layers of pages live in the Buffer Pool Manager (BPM):
+ *
+ *   BPlusTreeHeaderPage   — one per index; holds root_page_id_ only.
+ *   BPlusTreeInternalPage — routing nodes; key[i] divides subtree[i-1]
+ *                           from subtree[i].  key[0] is always an invalid
+ *                           sentinel; size_ counts SLOTS (= child count =
+ *                           real keys + 1).
+ *   BPlusTreeLeafPage     — data nodes; (key, value) pairs + optional
+ *                           tombstone ring buffer (Spring 2026 Bε feature).
+ *
+ * All pages follow the PAGE-IS-BUFFER pattern: they are reinterpret_cast'd
+ * from raw 4 KiB BPM frames — never heap-allocated, no ctor/dtor.
+ *
+ * TREE INVARIANTS
+ * ───────────────
+ *   - All keys are unique (no duplicate-key support).
+ *   - Every non-root page: GetMinSize() <= size_ <= max_size_.
+ *     Root is exempt from the lower bound (may hold 1 child / 1 key).
+ *   - Leaf pages are linked via next_page_id_ for range scans.
+ *
+ * TEMPLATE PARAMETERS  (bound via FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN)
+ * ─────────────────────────────────────────────────────────────────────
+ *   KeyType       — type of the search key  (e.g. GenericKey<8>)
+ *   ValueType     — type stored in leaf pages (e.g. RID)
+ *   KeyComparator — strict-weak-ordering functor for KeyType
+ *   NumTombs      — tombstone buffer capacity per leaf (default 0).
+ *                   -1 disables tombstones at compile time.
+ *                   >0 enables Bε-tree lazy-deletion semantics.
+ *                   See BPlusTreeLeafPage for full tombstone semantics.
+ */
+#pragma once
+
+#include <algorithm>
+#include <deque>
+#include <filesystem>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <queue>
+#include <shared_mutex>
+#include <string>
+#include <vector>
+
+#include "common/config.h"
+#include "common/macros.h"
+#include "storage/index/index_iterator.h"
+#include "storage/page/b_plus_tree_header_page.h"
+#include "storage/page/b_plus_tree_internal_page.h"
+#include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/page_guard.h"
+
+namespace bustub {
+
+struct PrintableBPlusTree;
+
+/**
+ * @brief Traversal context for B+ tree Insert / Remove / GetValue.
+ *
+ * Context bundles all the mutable state a tree traversal needs to carry
+ * as it descends from the root to the target leaf.  Using it is optional
+ * but strongly advised — it prevents threading five separate parameters
+ * through every helper function.
+ *
+ * CONCURRENCY ROLE  (Task 4 — Latch Crabbing)
+ * ────────────────────────────────────────────
+ * The B+ tree uses "latch crabbing" (a.k.a. lock coupling) for concurrent
+ * access.  As you descend from root to leaf:
+ *
+ *   1. Acquire a latch on the child page (push to write_set_ / read_set_).
+ *   2. If the child is "safe" for this operation (a safe insert node has
+ *      size_ < max_size_; a safe remove node has size_ > GetMinSize()),
+ *      release ALL ancestor guards held so far.
+ *   3. Otherwise keep them — a split or merge may need to propagate upward.
+ *
+ * Dropping a WritePageGuard / ReadPageGuard releases the BPM rwlatch on
+ * that frame.  Clearing write_set_ or destructing Context releases all
+ * held latches at once — a convenient "unlock everything" operation.
+ */
+class Context {
+ public:
+	/**
+	 * @brief WritePageGuard for the header page (holds root_page_id_).
+	 *
+	 * Acquired at the start of Insert / Remove because either may change
+	 * the root (root split → new root, or root underflow → child promoted).
+	 *
+	 * Drop this guard (set to std::nullopt) as soon as you are certain the
+	 * root will NOT change on this traversal — this releases the header
+	 * latch and allows concurrent root-pointer readers to proceed.
+	 *
+	 * Remains nullopt initially (no latch held at construction time).
+	 */
+	// When you insert into / remove from the B+ tree, store the write guard of header page here.
+	// Remember to drop the header page guard and set it to nullopt when you want to unlock all.
+	std::optional<WritePageGuard> header_page_{std::nullopt};
+
+	/**
+	 * @brief Snapshot of root_page_id_ read from the header page at the
+	 *        start of traversal.
+	 *
+	 * Cached here so IsRootPage() does not re-read the header page on every
+	 * comparison.  Must be updated whenever a root change is committed
+	 * (e.g. after allocating a new root during a split).
+	 */
+	// Save the root page id here so that it's easier to know if the current page is the root page.
+	page_id_t root_page_id_{INVALID_PAGE_ID};
+
+	/**
+	 * @brief Write guards accumulated along the root → current-node path.
+	 *
+	 * Push to the BACK as you descend; front() is the highest ancestor
+	 * still latched.  Pop from the FRONT (release the guard) when latch
+	 * crabbing determines an ancestor is safe.
+	 *
+	 *   On Insert: back() will eventually be the leaf receiving the new key.
+	 *   On Remove: back() will be the leaf losing the key.
+	 *
+	 * If write_set_ is non-empty when Context destructs, all remaining
+	 * write latches are released automatically via WritePageGuard's dtor.
+	 */
+	// Store the write guards of the pages that you're modifying here.
+	std::deque<WritePageGuard> write_set_;
+
+	/**
+	 * @brief Read guards accumulated along the root → current-node path.
+	 *
+	 * Used on the read path (GetValue).  A read guard blocks concurrent
+	 * writers but allows other concurrent readers.  Release the parent's
+	 * read guard as soon as the child's read guard is acquired — no need
+	 * to hold the entire ancestor chain for a pure read traversal.
+	 */
+	// You may want to use this when getting value, but not necessary.
+	std::deque<ReadPageGuard> read_set_;
+
+	/**
+	 * @brief Returns true if page_id is the current root.
+	 *
+	 * Compares against the locally-cached root_page_id_ to avoid
+	 * re-acquiring the header-page latch on every check.
+	 */
+	auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+};
+
+/**
+ * @brief Shorthand macro for BPlusTree method definitions in .cpp files.
+ *
+ * Expands to: BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
+ *
+ * Usage in b_plus_tree.cpp:
+ *   FULL_INDEX_TEMPLATE_ARGUMENTS
+ *   auto BPLUSTREE_TYPE::Insert(...) -> bool { ... }
+ *
+ * Avoids repeating the full four-parameter template name on every
+ * out-of-line definition.
+ */
+#define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
+
+/**
+ * @brief Main B+ tree index class.
+ *
+ * Provides Insert, Remove, GetValue, and range-scan iterators over a
+ * persistent B+ tree stored in the Buffer Pool Manager.
+ *
+ * TYPE ALIASES (private, for casting BPM frames inside the implementation)
+ * ─────────────────────────────────────────────────────────────────────────
+ *   InternalPage — BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>
+ *   LeafPage     — BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>
+ *
+ * HEADER PAGE / ROOT POINTER INDIRECTION
+ * ────────────────────────────────────────
+ * The tree never stores root_page_id_ as a plain member.  It keeps a
+ * permanent `header_page_id_` pointing to a BPlusTreeHeaderPage in the BPM.
+ * That page's root_page_id_ field is the authoritative root pointer.
+ * Holding a write latch on the header page while changing the root makes
+ * the update atomic under concurrent access.
+ *
+ * BPM WRAPPING
+ * ────────────
+ * The constructor accepts a raw BufferPoolManager* but immediately wraps it
+ * in a shared_ptr<TracedBufferPoolManager>.  All subsequent BPM calls go
+ * through bpm_ (the traced wrapper), never through the raw pointer.
+ * DO NOT change bpm_'s type — the test harness reads it directly.
+ */
+// Main class providing the API for the Interactive B+ Tree.
+FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
+class BPlusTree {
+	using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
+	using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>;
+
+ public:
+	/**
+	 * @brief Construct a B+ tree index.
+	 *
+	 * Wraps buffer_pool_manager in a TracedBufferPoolManager and stores it
+	 * in bpm_.  Then acquires a write latch on header_page_id and sets
+	 * root_page_id_ = INVALID_PAGE_ID (tree starts empty).
+	 *
+	 * Algorithm:
+	 *   1. Initialise member fields via initialiser list.
+	 *   2. guard = bpm_->WritePage(header_page_id_)
+	 *   3. hdr   = guard.AsMut<BPlusTreeHeaderPage>()
+	 *   4. hdr->root_page_id_ = INVALID_PAGE_ID
+	 *   (guard destructs here — header latch released before ctor returns)
+	 *
+	 * @param name                Human-readable index name (stored in index_name_).
+	 * @param header_page_id      BPM page_id of the pre-allocated header page.
+	 *                            Must already exist in the BPM; will be
+	 *                            overwritten with root_page_id_ = INVALID.
+	 * @param buffer_pool_manager Raw BPM pointer — wrapped internally.
+	 *                            Do NOT store or use this pointer after ctor.
+	 * @param comparator          Key comparator functor (copied).
+	 * @param leaf_max_size       Max slots in a leaf before split.
+	 *                            Defaults to LEAF_PAGE_SLOT_CNT.
+	 * @param internal_max_size   Max slots in an internal page before split.
+	 *                            Defaults to INTERNAL_PAGE_SLOT_CNT.
+	 */
+	explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
+	                   const KeyComparator &comparator, int leaf_max_size = LEAF_PAGE_SLOT_CNT,
+	                   int internal_max_size = INTERNAL_PAGE_SLOT_CNT);
+
+	/**
+	 * @brief Returns true if this B+ tree has no keys and values.
+	 *
+	 * Algorithm:
+	 *   1. Acquire ReadPageGuard on header_page_id_.
+	 *   2. Read hdr->root_page_id_.
+	 *   3. Return (root_page_id_ == INVALID_PAGE_ID).
+	 */
+	// Returns true if this B+ tree has no keys and values.
+	auto IsEmpty() const -> bool;
+
+	/**
+	 * @brief Insert a key-value pair into the B+ tree.
+	 *
+	 * Unique-key only: returns false immediately if key already exists.
+	 *
+	 * High-level algorithm:
+	 *   1. Acquire WritePageGuard on header page; read/cache root_page_id_
+	 *      into ctx.root_page_id_.  Store guard in ctx.header_page_.
+	 *   2. If tree is empty: allocate new leaf page, write (key,value),
+	 *      set it as root, update hdr->root_page_id_, return true.
+	 *   3. Descend to the correct leaf page using ctx.write_set_:
+	 *        a. At each internal node: binary-search for the child subtree
+	 *           whose range contains key.
+	 *        b. Latch crabbing: if child is "safe for insert"
+	 *           (size_ < max_size_), release all ancestor guards.
+	 *   4. At the leaf: if key already exists, return false.
+	 *   5. Insert (key,value) into leaf in sorted order.
+	 *   6. If leaf overflows (size_ > leaf_max_size_):
+	 *        a. Allocate sibling leaf; move upper half of entries to it.
+	 *        b. Link: leaf->next_page_id_ = sibling->page_id_.
+	 *        c. Push sibling's first key up to parent (InsertIntoParent).
+	 *        d. Recurse upward if parent also overflows.
+	 *        e. If root splits: allocate new root, update ctx and header.
+	 *   7. Return true.
+	 *
+	 * @param key   The key to insert.
+	 * @param value The associated value (stored in the leaf).
+	 * @return true on success; false if key already exists.
+	 */
+	// Insert a key-value pair into this B+ tree.
+	auto Insert(const KeyType &key, const ValueType &value) -> bool;
+
+	/**
+	 * @brief Delete the key-value pair with the given key.
+	 *
+	 * If tree is empty or key is not found, returns immediately.
+	 *
+	 * High-level algorithm:
+	 *   1. Acquire WritePageGuard on header page; read root_page_id_ into ctx.
+	 *   2. If empty, return.
+	 *   3. Descend to target leaf via ctx.write_set_ (latch crabbing):
+	 *        - Safe-for-remove: size_ > GetMinSize() (will not underflow).
+	 *          Release ancestor guards when safe.
+	 *   4. On the leaf:
+	 *        - If NumTombs > 0: add deletion to tombstone ring buffer.
+	 *          When ring is full, apply oldest tombstone (compact array).
+	 *        - Otherwise: physically shift-remove the slot.
+	 *   5. If leaf underflows (size_ < GetMinSize()):
+	 *        a. Try borrow from a sibling: pull one entry across,
+	 *           update separator key in parent.
+	 *        b. If borrow impossible: merge with sibling, delete
+	 *           separator key from parent.
+	 *   6. Propagate merges upward as needed.
+	 *   7. If root is left with one child: promote child to root,
+	 *      free old root page, update header.
+	 *
+	 * @param key The key to remove.
+	 */
+	// Remove a key and its value from this B+ tree.
+	void Remove(const KeyType &key);
+
+	/**
+	 * @brief Return the value associated with a given key (point query).
+	 *
+	 * Algorithm:
+	 *   1. Acquire ReadPageGuard on header_page_id_; read root_page_id_.
+	 *   2. If empty, return false.
+	 *   3. Descend internal pages (latch crabbing for reads):
+	 *        a. Cast frame to InternalPage.
+	 *        b. Binary-search keys[1..size_-1] for largest key[i] <= search key.
+	 *        c. Follow child pointer[i].
+	 *        d. Push child ReadPageGuard to ctx.read_set_; release parent.
+	 *   4. At the leaf:
+	 *        a. Cast frame to LeafPage.
+	 *        b. Binary-search for key (tombstoned slots are invisible to
+	 *           KeyAt(); they are skipped automatically).
+	 *        c. If found: result->push_back(ValueAt(slot)), return true.
+	 *   5. Return false.
+	 *
+	 * @param key    The key to look up.
+	 * @param result Output vector; matching value appended if found.
+	 * @return true if key found; false otherwise.
+	 */
+	// Return the value associated with a given key
+	auto GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool;
+
+	/**
+	 * @brief Return the page_id of the current root node.
+	 *
+	 * Reads the header page under a read latch for a consistent snapshot.
+	 * Returns INVALID_PAGE_ID if the tree is empty.
+	 *
+	 * Implement while working on Task 3 (iterator).
+	 */
+	// Return the page id of the root node
+	auto GetRootPageId() -> page_id_t;
+
+	/**
+	 * @brief Iterator to the first (smallest key) entry in the tree.
+	 *
+	 * Algorithm:
+	 *   1. Read header; if empty, return End().
+	 *   2. Descend always following child[0] until IsLeafPage() == true.
+	 *   3. Return INDEXITERATOR_TYPE(bpm_.get(), leaf_guard, 0).
+	 *
+	 * Implement while working on Task 3.
+	 */
+	// Index iterator
+	auto Begin() -> INDEXITERATOR_TYPE;
+
+	/**
+	 * @brief Iterator representing the past-the-end position.
+	 *
+	 * Returns a sentinel iterator that compares equal to End() and cannot
+	 * be dereferenced.  Typically constructed with a nullptr BPM or an
+	 * invalid page guard and slot index.
+	 */
+	auto End() -> INDEXITERATOR_TYPE;
+
+	/**
+	 * @brief Iterator to the first entry with key >= the given key.
+	 *
+	 * Performs the same descent as GetValue to find the leaf that would
+	 * contain key, then positions the iterator at the first slot where
+	 * KeyAt(slot) >= key.
+	 *
+	 * @param key Lower-bound key for the range scan.
+	 */
+	auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
+
+	/** @brief Debug: print the tree structure to stdout. */
+	void Print(BufferPoolManager *bpm);
+
+	/** @brief Debug: write a Graphviz DOT representation to outf. */
+	void Draw(BufferPoolManager *bpm, const std::filesystem::path &outf);
+
+	/** @brief Debug: return the tree as a formatted string. */
+	auto DrawBPlusTree() -> std::string;
+
+	/** @brief Bulk-load: read (key, value) pairs from file, insert one by one. */
+	// read data from file and insert one by one
+	void InsertFromFile(const std::filesystem::path &file_name);
+
+	/** @brief Bulk-remove: read keys from file, remove one by one. */
+	// read data from file and remove one by one
+	void RemoveFromFile(const std::filesystem::path &file_name);
+
+	/** @brief Bulk mixed ops: read a sequence of insert/remove ops from file. */
+	void BatchOpsFromFile(const std::filesystem::path &file_name);
+
+	/**
+	 * @brief Buffer pool manager used for all page I/O.
+	 *
+	 * WARNING: Do NOT change this type to BufferPoolManager!
+	 * CMU's test harness accesses bpm_ directly via this shared_ptr to
+	 * read TracedBufferPoolManager's call-count and page-access tracing
+	 * data used by autograder assertions.
+	 *
+	 * Intentionally public so tests can reach it without an accessor.
+	 */
+	// Do not change this type to a BufferPoolManager!
+	std::shared_ptr<TracedBufferPoolManager> bpm_;
+
+ private:
+	/** @brief Recursively emit Graphviz DOT edges for the subtree rooted at page_id. */
+	void ToGraph(page_id_t page_id, const BPlusTreePage *page, std::ofstream &out);
+
+	/** @brief Recursively print the subtree rooted at page_id to stdout. */
+	void PrintTree(page_id_t page_id, const BPlusTreePage *page);
+
+	/** @brief Convert the subtree rooted at root_id into a PrintableBPlusTree for BFS display. */
+	auto ToPrintableBPlusTree(page_id_t root_id) -> PrintableBPlusTree;
+
+	// member variable
+	/** @brief Human-readable name for this index (used in debug output). */
+	std::string index_name_;
+
+	/** @brief Comparator functor for KeyType (strict weak ordering). */
+	KeyComparator comparator_;
+
+	std::vector<std::string> log;  // NOLINT
+
+	/**
+	 * @brief Maximum slots in a leaf page before triggering a split.
+	 *
+	 * Split fires when size_ > leaf_max_size_ (strictly greater), so a
+	 * page at exactly leaf_max_size_ is still valid — it can accept one
+	 * more entry before splitting.  Defaults to LEAF_PAGE_SLOT_CNT
+	 * (derived from PAGE_SIZE / sizeof(MappingType)).
+	 */
+	int leaf_max_size_;
+
+	/**
+	 * @brief Maximum slots in an internal page before triggering a split.
+	 *
+	 * Split fires when size_ > internal_max_size_.  Remember: for internal
+	 * pages size_ counts SLOTS (= child-pointer count = real-key count + 1)
+	 * because slot[0] is the always-invalid sentinel.  Defaults to
+	 * INTERNAL_PAGE_SLOT_CNT.
+	 */
+	int internal_max_size_;
+
+	/**
+	 * @brief BPM page_id of the permanent header page for this index.
+	 *
+	 * Pre-allocated by the caller before constructing BPlusTree; passed in
+	 * as a constructor argument and stored here.  Never changes after
+	 * construction.  The header page's root_page_id_ field is updated as
+	 * the tree's root changes.
+	 */
+	page_id_t header_page_id_;
+};
+
+/**
+ * @brief For test only. PrintableBPlusTree is a printable B+ tree.
+ * We first convert B+ tree into a printable B+ tree and the print it.
+ *
+ * This struct is a BFS-friendly mirror of the live tree.  Each node stores:
+ *   size_     — total display width in characters (for centering keys_).
+ *   keys_     — formatted string of keys at this node.
+ *   children_ — child PrintableBPlusTree nodes (empty at leaf level).
+ *
+ * ToPrintableBPlusTree() builds this tree from the live BPM pages.
+ * Print() then does a standard level-order BFS to emit one line per level.
+ */
+struct PrintableBPlusTree {
+	/** @brief Total display width for this node in characters. */
+	int size_;
+
+	/** @brief Formatted key string for this node. */
+	std::string keys_;
+
+	/** @brief Child subtrees (empty for leaf nodes). */
+	std::vector<PrintableBPlusTree> children_;
+
+	/**
+	 * @brief BFS traverse a printable B+ tree and print it into out_buf.
+	 *
+	 * Level-order: each level is emitted on one line.  Each node's keys_
+	 * string is centred within its size_ columns via space padding.
+	 *
+	 * @param out_buf Output stream (e.g. std::cout or a stringstream).
+	 */
+	void Print(std::ostream &out_buf) {
+		std::vector<PrintableBPlusTree *> que = {this};
+		while (!que.empty()) {
+			std::vector<PrintableBPlusTree *> new_que;
+
+			for (auto &t : que) {
+				int padding = (t->size_ - t->keys_.size()) / 2;
+				out_buf << std::string(padding, ' ');
+				out_buf << t->keys_;
+				out_buf << std::string(padding, ' ');
+
+				for (auto &c : t->children_) {
+					new_que.push_back(&c);
+				}
+			}
+			out_buf << "\n";
+			que = new_que;
+		}
+	}
+};
+
+}  // namespace bustub
+```
+
+---
+
+## 3. `bustub/src/storage/index/b_plus_tree.cpp`
+
+```cpp
+//===----------------------------------------------------------------------===//
+//
+//                         BusTub
+//
+// b_plus_tree.cpp
+//
+// Identification: src/storage/index/b_plus_tree.cpp
+//
+// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+//
+//===----------------------------------------------------------------------===//
+
+/**
+ * b_plus_tree.cpp
+ *
+ * Out-of-line method definitions for BPlusTree<KeyType,ValueType,KeyComparator,NumTombs>.
+ *
+ * IMPLEMENTATION ORDER (recommended)
+ * ────────────────────────────────────
+ *   Task 2: IsEmpty → GetValue → Insert → Remove
+ *             (single-threaded; no latching needed yet)
+ *   Task 3: GetRootPageId → Begin() → Begin(key) → End()
+ *             (iterator support; read the leaf linked list)
+ *   Task 4: Retrofit latch crabbing into Insert / Remove / GetValue
+ *             using Context::write_set_ and Context::read_set_.
+ *
+ * All methods currently contain UNIMPLEMENTED() which aborts at runtime.
+ *
+ * EXPLICIT TEMPLATE INSTANTIATIONS  (bottom of file)
+ * ─────────────────────────────────────────────────────
+ * BPlusTree's method bodies live in this .cpp, not in the header.
+ * Without explicit instantiation the linker finds no compiled code for
+ * any particular <Key,Value,Cmp,NumTombs> combination.  The lines at
+ * the bottom force the compiler to generate the full class for each
+ * combination used by BusTub:
+ *
+ *   GenericKey<4,8,16,32,64> × RID × GenericComparator<N>  (NumTombs=0)
+ *   GenericKey<8>            × RID × GenericComparator<8>
+ *       with NumTombs = 3, 2, 1    (tombstone buffer variants)
+ *       with NumTombs = -1         (tombstones disabled at compile time)
+ */
+
+#include "storage/index/b_plus_tree.h"
+#include "buffer/traced_buffer_pool_manager.h"
+#include "storage/index/b_plus_tree_debug.h"
+
+namespace bustub {
+
+/**
+ * @brief Construct a BPlusTree.
+ *
+ * Wraps the raw BPM in a TracedBufferPoolManager, stores it in bpm_,
+ * then initialises the header page by writing INVALID_PAGE_ID to
+ * root_page_id_.  The header-page write latch is held only for the
+ * duration of this write and is released when the guard destructs.
+ *
+ * Algorithm:
+ *   1. Initialise member fields via initialiser list.
+ *      (bpm_ wraps buffer_pool_manager in TracedBufferPoolManager)
+ *   2. guard     = bpm_->WritePage(header_page_id_)
+ *   3. root_page = guard.AsMut<BPlusTreeHeaderPage>()
+ *   4. root_page->root_page_id_ = INVALID_PAGE_ID   // tree starts empty
+ *   (guard destructs → header write latch released)
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
+                          const KeyComparator &comparator, int leaf_max_size, int internal_max_size)
+    : bpm_(std::make_shared<TracedBufferPoolManager>(buffer_pool_manager)),
+      index_name_(std::move(name)),
+      comparator_(std::move(comparator)),
+      leaf_max_size_(leaf_max_size),
+      internal_max_size_(internal_max_size),
+      header_page_id_(header_page_id) {
+  WritePageGuard guard = bpm_->WritePage(header_page_id_);
+  auto root_page = guard.AsMut<BPlusTreeHeaderPage>();
+  root_page->root_page_id_ = INVALID_PAGE_ID;
+}
+
+/**
+ * @brief Helper function to decide whether current b+tree is empty
+ * @return Returns true if this B+ tree has no keys and values.
+ *
+ * Algorithm:
+ *   1. Acquire ReadPageGuard on header_page_id_.
+ *   2. Return (hdr->root_page_id_ == INVALID_PAGE_ID).
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::IsEmpty() const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+/*****************************************************************************
+ * SEARCH
+ *****************************************************************************/
+/**
+ * @brief Return the only value that associated with input key
+ *
+ * This method is used for point query
+ *
+ * Algorithm:
+ *   1. Acquire ReadPageGuard on header_page_id_; read root_page_id_.
+ *      If INVALID_PAGE_ID, return false.
+ *   2. Descend internal pages:
+ *        a. Cast frame to InternalPage.
+ *        b. Binary-search keys[1..size_-1] for largest key[i] <= key.
+ *        c. Follow child pointer[i].
+ *        d. (Task 4) Push ReadPageGuard to ctx.read_set_; release parent.
+ *   3. At the leaf (IsLeafPage() == true):
+ *        a. Cast frame to LeafPage.
+ *        b. Binary-search for key (KeyAt() skips tombstoned slots).
+ *        c. If found: result->push_back(ValueAt(slot)), return true.
+ *   4. Return false.
+ *
+ * @param key input key
+ * @param[out] result vector that stores the only value that associated with input key, if the value exists
+ * @return : true means key exists
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  // Declaration of context instance. Using the Context is not necessary but advised.
+  Context ctx;
+}
+
+/*****************************************************************************
+ * INSERTION
+ *****************************************************************************/
+/**
+ * @brief Insert constant key & value pair into b+ tree
+ *
+ * if current tree is empty, start new tree, update root page id and insert
+ * entry; otherwise, insert into leaf page.
+ *
+ * Algorithm:
+ *   1. Acquire WritePageGuard on header page; cache root_page_id_ in ctx.
+ *   2. If empty: allocate leaf, write (key,value), set as root,
+ *      update hdr->root_page_id_, return true.
+ *   3. Descend to target leaf via ctx.write_set_ (latch crabbing):
+ *        - Safe-for-insert: size_ < max_size_ (will not split).
+ *          Release all ancestor guards when safe.
+ *   4. If key already in leaf, return false.
+ *   5. Insert (key,value) in sorted order.
+ *   6. If leaf overflows (size_ > leaf_max_size_):
+ *        a. Allocate sibling; move upper half of entries.
+ *        b. Link: leaf->next_page_id_ = sibling->page_id_.
+ *        c. Push sibling's first key up to parent.
+ *        d. Recurse upward if parent overflows.
+ *        e. If root splits: new root internal page; update header.
+ *   7. Return true.
+ *
+ * @param key the key to insert
+ * @param value the value associated with key
+ * @return: since we only support unique key, if user try to insert duplicate
+ * keys return false; otherwise, return true.
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  // Declaration of context instance. Using the Context is not necessary but advised.
+  Context ctx;
+}
+
+/*****************************************************************************
+ * REMOVE
+ *****************************************************************************/
+/**
+ * @brief Delete key & value pair associated with input key
+ * If current tree is empty, return immediately.
+ * If not, User needs to first find the right leaf page as deletion target, then
+ * delete entry from leaf page. Remember to deal with redistribute or merge if
+ * necessary.
+ *
+ * Algorithm:
+ *   1. Acquire WritePageGuard on header page; cache root_page_id_ in ctx.
+ *   2. If empty, return.
+ *   3. Descend to target leaf via ctx.write_set_ (latch crabbing):
+ *        - Safe-for-remove: size_ > GetMinSize() (will not underflow).
+ *          Release ancestor guards when safe.
+ *   4. On the leaf:
+ *        - NumTombs > 0: buffer as tombstone; when ring full, apply oldest.
+ *        - NumTombs <= 0: physically shift-remove the slot.
+ *   5. If leaf underflows (size_ < GetMinSize()):
+ *        a. Try borrow from sibling; update separator key in parent.
+ *        b. If borrow impossible: merge with sibling; delete separator
+ *           key from parent.
+ *   6. Propagate merges upward as needed.
+ *   7. If root left with one child: promote child; free old root; update header.
+ *
+ * @param key input key
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::Remove(const KeyType &key) {
+  // Declaration of context instance.
+  Context ctx;
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+/*****************************************************************************
+ * INDEX ITERATOR
+ *****************************************************************************/
+/**
+ * @brief Input parameter is void, find the leftmost leaf page first, then construct
+ * index iterator
+ *
+ * Algorithm:
+ *   1. Read header; if empty return End().
+ *   2. Descend always following child[0] until IsLeafPage() == true.
+ *   3. Return INDEXITERATOR_TYPE(bpm_.get(), leaf_guard, 0).
+ *
+ * You may want to implement this while implementing Task #3.
+ *
+ * @return : index iterator
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+/**
+ * @brief Input parameter is low key, find the leaf page that contains the input key
+ * first, then construct index iterator
+ *
+ * Algorithm:
+ *   1. Descend to the leaf that would contain key (same path as GetValue).
+ *   2. Binary-search the leaf for the first slot where KeyAt(slot) >= key.
+ *   3. Return INDEXITERATOR_TYPE(bpm_.get(), leaf_guard, slot).
+ *
+ * @return : index iterator
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+/**
+ * @brief Input parameter is void, construct an index iterator representing the end
+ * of the key/value pair in the leaf node
+ *
+ * Returns a sentinel past-the-end iterator — typically constructed with a
+ * nullptr BPM or an invalid page guard so that operator== can detect it.
+ *
+ * @return : index iterator
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+/**
+ * @return Page id of the root of this tree
+ *
+ * Algorithm:
+ *   1. Acquire ReadPageGuard on header_page_id_.
+ *   2. Return hdr->root_page_id_.
+ *
+ * You may want to implement this while implementing Task #3.
+ */
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+/*
+ * EXPLICIT TEMPLATE INSTANTIATIONS
+ * ──────────────────────────────────
+ * BPlusTree's method bodies are in this .cpp file, not the header, so
+ * the compiler only generates code for the combinations listed here.
+ * Each line tells the compiler to emit the full class for that combination.
+ *
+ * NumTombs variants for GenericKey<8>:
+ *   3, 2, 1  — tombstone ring buffer of the given capacity
+ *   -1       — tombstones disabled at compile time (special sentinel)
+ *   (default 0 via the plain BPlusTree<GenericKey<8>,...> instantiation)
+ */
+template class BPlusTree<GenericKey<4>, RID, GenericComparator<4>>;
+
+template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>>;
+template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 3>;
+template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 2>;
+template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, 1>;
+template class BPlusTree<GenericKey<8>, RID, GenericComparator<8>, -1>;
+
+template class BPlusTree<GenericKey<16>, RID, GenericComparator<16>>;
+
+template class BPlusTree<GenericKey<32>, RID, GenericComparator<32>>;
+
+template class BPlusTree<GenericKey<64>, RID, GenericComparator<64>>;
+
+}  // namespace bustub
+```
+
+---
+
+Those are all three files. The key additions:
+
+- **`b_plus_tree_header_page.h`**: explains the indirection rationale (why a dedicated page vs. a plain member), page-is-buffer pattern, and what "changing the root" means for `root_page_id_`.
+- **`b_plus_tree.h`**: full latch-crabbing explanation on `Context`, per-field docs on all five Context members, BPLUSTREE_TYPE macro rationale, BPlusTree class-level invariants, per-method algorithm sketches (including tombstone path in Remove), the `bpm_` type warning, and PrintableBPlusTree BFS explanation.
+- **`b_plus_tree.cpp`**: file-level implementation order guide (Tasks 2→3→4), explicit-instantiation rationale, and per-method algorithm pseudocode that mirrors the header docs.
 
 ---
 
