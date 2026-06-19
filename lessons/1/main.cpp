@@ -3,16 +3,17 @@
 #include <vector>
 #include <cstdint>
 
-#if defined(PRINT)
+#if defined(USE_PRINT)
 	#include <print>
 #endif
 
 int main () {
-	#if defined(PRINT)
+	#if defined(USE_PRINT)
 		// TODO!!: fix nvim LSP warning No member named 'println' in namespace 'std'; did you mean 'printf'? (fix available)
 		std::println("hello, world");
+	#else
+		std::cout << "Hello World" << std::endl;
 	#endif
-	std::cout << "Hello World" << std::endl;
 
 	std::uint32_t count = 42;
 	std::uint64_t big = 1'000'000'000ULL;
@@ -27,11 +28,11 @@ int main () {
 	std::vector<std::uint32_t> xs = {1, 2, 3, 4, 5};
 	length = xs.size();
 
-	#if defined(PRINT)
+	#if defined(USE_PRINT)
 		std::println("name={}, count={}, big={}, length={}", name, count, big, length);
+	#else
+		std::cout << "name=" << name << ", count=" << count << ", big=" << big << ", length=" << length << "\n";
 	#endif
-
-	std::cout << "name=" << name << ", count=" << count << ", big=" << big << ", length=" << length << "\n";
 
 	return 0;
 }
