@@ -232,6 +232,7 @@ int main () {
 	std::cout << "--- 1. default ctor ---\n";
 	{
 		Buffer a;
+		//	@see main.cpp:87-90
 	}
 	std::cout << "\n";
 
