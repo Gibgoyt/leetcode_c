@@ -70,8 +70,13 @@ int main () {
 		{
 			printf("right after scope start\n\n");
 
+
 			printf("before init std::vector\n");
 			std::vector<Vertex> vertices;
+
+			int n = 2;
+			printf("reserving capacity=%d for 'vertices' vector\n", n);
+			vertices.reserve(2);
 
 			printf("before push_back()\n");
 			vertices.push_back({1, 2, 3});
