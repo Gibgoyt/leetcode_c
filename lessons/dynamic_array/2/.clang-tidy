@@ -1,0 +1,12 @@
+---
+# Scoped overrides for lessons/dynamic_array/1. Inherits the project-root
+# .clang-tidy and only adjusts what's noisy for this specific lesson.
+#
+# prefer-member-initializer is silenced here because this lesson deliberately
+# uses body-assignment ctors (this->x = in_x;) for teaching purposes — the
+# init-list lesson is introduced later when a member type makes it load-bearing
+# (const, reference, or non-trivially-constructible).
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-prefer-member-initializer
+---
