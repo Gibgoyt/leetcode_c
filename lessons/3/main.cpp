@@ -76,6 +76,7 @@
 #include <utility>
 #include <cstdint>
 #include <cstddef>
+#include <cstring>
 
 /*
  *	hand-written "owns a heap buffer" class
@@ -110,9 +111,7 @@ class Buffer {
 		Buffer (
 			const Buffer& other
 		) : data_(new int[other.size_]), size_(other.size_) {
-			for (std::size_t i=0; i<size_; ++i) {
-				data_[i] = other.data_[i];
-			}
+			std::memcpy(data_, other.data_, size_ * sizeof(int));
 			std::cout << "  [copy ctor, size=" << size_ << "]\n";
 		}
 
@@ -133,9 +132,7 @@ class Buffer {
 			delete[] data_;	// free old buffer
 			size_ = other.size_;
 			data_ = new int[size_];
-			for (std::size_t i=0; i<size_; ++i) {
-				data_[i] = other.data_[i];
-			}
+			std::memcpy(data_, other.data_, size_ * sizeof(int));
 			return *this;
 		}
 
