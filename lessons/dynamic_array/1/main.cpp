@@ -9,12 +9,31 @@ struct Vertex {
 	float y;
 	float z;
 
+	/*
+	 *	parametized ctor for the 'Vertex' struct
+	*/
 	Vertex (
-		float x,
-		float y,
-		float z
-	) : x(x), y(y), z(z) {
-		printf("parametized ctor called, with x=%f, y=%f, z=%f.\n", x, y, z);
+		float in_x,
+		float in_y,
+		float in_z
+	) {
+		// c-style approach, explicit, not weird c++ syntax
+		this->x = in_x;
+		this->y = in_y;
+		this->z = in_z;
+		printf("parametized ctor called, with x=%f, y=%f, z=%f.\n", this->x, this->y, this->z);
+	}
+
+	/*
+	 *	copy ctor for 'Vertex' object
+	*/
+	Vertex (
+		const Vertex& vertex
+	) {
+		this->x = vertex.x;
+		this->y = vertex.y;
+		this->z = vertex.z;
+		printf("copy ctor called, with x=%f, y=%f, z=%f.\n", this->x, this->y, this->z);
 	}
 };
 
@@ -29,6 +48,7 @@ std::ostream& operator<<(
 void print_vertices (
 	const std::vector<Vertex>& vertices
 ) {
+	printf("before iterating over 'vertices'\n");
 	for (
 		std::uint32_t i=0;
 		i<vertices.size();
@@ -46,11 +66,22 @@ int main () {
 		}
 	#endif
 	#if defined(BLOCK_1)
+		printf("right before scope start\n");
 		{
+			printf("right after scope start\n\n");
+
+			printf("before init std::vector\n");
 			std::vector<Vertex> vertices;
+
+			printf("before push_back()\n");
 			vertices.push_back({1, 2, 3});
+
+			printf("before print_vertices()\n");
 			print_vertices(vertices);
+
+			printf("right before scope end\n\n");
 		}
+		printf("right after scope end\n");
 	#endif
 	return 0;
 }
