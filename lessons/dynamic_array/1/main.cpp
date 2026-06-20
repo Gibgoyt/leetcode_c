@@ -79,9 +79,16 @@ int main () {
 			printf("before print_vertices()\n");
 			print_vertices(vertices);
 
+			printf("right before second push_back()\n");
+			vertices.push_back(Vertex(4, 5, 6));
+
 			printf("right before scope end\n\n");
 		}
 		printf("right after scope end\n");
+	#endif
+	#if defined(BLOCK_2)
+		Vertex test = Vertex(1, 2, 3);
+		Vertex* test2 = new Vertex(test);
 	#endif
 	return 0;
 }
