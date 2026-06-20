@@ -1,0 +1,50 @@
+---
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+AccessModifierOffset: -4
+
+# Function decls / calls: when they don't fit on one line, put one arg per
+# line and drop the closing ')' onto its own line at the call's indent.
+#   void foo(
+#       int a,
+#       int b
+#   ) { ... }
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBraces: Attach
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+FixNamespaceComments: true
+IncludeBlocks: Preserve
+NamespaceIndentation: None
+PointerAlignment: Left
+SortIncludes: false
+SpaceAfterTemplateKeyword: true
+SpacesBeforeTrailingComments: 2
+
+# Preprocessor lines follow the current indent instead of snapping to column 0.
+#   void foo() {
+#       #ifdef DEBUG
+#       puts("dbg");
+#       #endif
+#   }
+IndentPPDirectives: BeforeHash
+
+PenaltyReturnTypeOnItsOwnLine: 200
