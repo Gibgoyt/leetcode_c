@@ -2,20 +2,19 @@
 
 #
 #	parse args:
-#		--block <NAME>	-> adds -D<NAME> to g++
+#		--flags X,Y,Z	-> adds -DX -DY -DZ to g++ (comma-separated, one --flags arg)
 #		(omitted)	-> compile without -D flags
-#		--block null	-> explicit null guard, compile without -D flags
 #
 #	usage:
 #		./build.sh
-#		./build.sh --block null
-#		./build.sh --block BLOCK_3
+#		./build.sh --flags REALLOCATE_WITH_COPY
+#		./build.sh --flags REALLOCATE_WITH_COPY,NDEBUG
 #
-BLOCK=""
+FLAGS_RAW=""
 while [[ $# -gt 0 ]]; do
 	case "$1" in
-		--block)
-			BLOCK="$2"
+		--flags)
+			FLAGS_RAW="$2"
 			shift 2
 			;;
 		*)
@@ -24,12 +23,15 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-DEFINE_FLAG=""
-if [ -z "$BLOCK" ] || [ "$BLOCK" == "null" ]; then
-	echo "no block specified, compiling without -D flags"
+DEFINE_FLAGS=""
+if [ -n "$FLAGS_RAW" ]; then
+	IFS=',' read -ra FLAG_ARRAY <<< "$FLAGS_RAW"
+	for flag in "${FLAG_ARRAY[@]}"; do
+		DEFINE_FLAGS="$DEFINE_FLAGS -D$flag"
+	done
+	echo "compiling with: $DEFINE_FLAGS"
 else
-	DEFINE_FLAG="-D$BLOCK"
-	echo "compiling with $DEFINE_FLAG"
+	echo "no flags specified, compiling without -D"
 fi
 
 if [ -f main ]; then
@@ -42,6 +44,6 @@ g++ \
 	-Wall	\
 	-Wextra	\
 	-Wpedantic	\
-	$DEFINE_FLAG	\
+	$DEFINE_FLAGS	\
 	main.cpp	\
 	-o main
