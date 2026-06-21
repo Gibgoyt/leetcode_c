@@ -38,6 +38,17 @@ struct Tracer {
 	int id;
 
 	/*
+	 *	default ctor
+	 *	id=0 so the field is always defined.
+	 *	useful when a user does `new Tracer{}` (value-init) without an id.
+	*/
+	Tracer (
+	) : id(0) {
+		log_indent();
+		printf("[Tracer{%d}] default ctor\n", id);
+	}
+
+	/*
 	 *	parametized ctor
 	*/
 	Tracer (
@@ -99,7 +110,7 @@ template <typename T>
 			*/
 			SharedPtr () {
 				log_indent();
-				printf("[Tracer{%d}] move ctor\n");
+				printf("[SharedPtr] default ctor (empty)\n");
 			}
 
 			/*
@@ -126,10 +137,9 @@ template <typename T>
 			 *	this is the entire point of SharePtr{}, multiple ptr_ pointing to the same heap memory
 			*/
 			SharedPtr (
-				SharedPtr& other
+				const SharedPtr& other
 			) : ptr_(other.ptr_), refcount_(other.refcount_) {
-				// TODO!!: warning Implicit conversion 'long *' -> 'bool' (fix available)
-				if (refcount_) {
+				if (refcount_ != nullptr) {
 					++*refcount_;
 				}
 
@@ -167,17 +177,17 @@ template <typename T>
 				}
 
 				log_indent();
-				printf("[SharedPtr] copy asign. ptr_=%p, refcount_=%ld\n", ptr_, *refcount_);
+				printf("[SharedPtr] copy asign\n");
 				g_log_indent++;
 				release();
 
 				ptr_ = other.ptr_;
 				refcount_ = other.refcount_;
 
-				if (refcount_) {
+				if (refcount_ != nullptr) {
 					++*refcount_;
 					log_indent();
-					printf("[SharedPtr] ***refcount_=%ld\n", *refcount_);
+					printf("[SharedPtr] ++refcount=%ld\n", *refcount_);
 				}
 
 				g_log_indent--;
@@ -206,7 +216,7 @@ template <typename T>
 				other.refcount_ = nullptr;
 
 				log_indent();
-				printf("[SharedPtr] move ctor. use_count=%ldn\n", use_count());
+				printf("[SharedPtr] move ctor                 use_count=%ld\n", use_count());
 			}
 
 			/*
@@ -224,11 +234,11 @@ template <typename T>
 				SharedPtr&& other
 			) noexcept {
 				if (this == &other) {
-					return &other;
+					return *this;
 				}
 
 				log_indent();
-				printf("[SharedPtr] move asign. ptr_=%p. refcount_=%ld\n", ptr_, *refcount_);
+				printf("[SharedPtr] move asign\n");
 				g_log_indent++;
 
 				release();
@@ -241,7 +251,7 @@ template <typename T>
 				g_log_indent--;
 
 				return *this;
-			};
+			}
 
 			/*
 			 *	dtor
@@ -249,7 +259,7 @@ template <typename T>
 			*/
 			~SharedPtr () {
 				log_indent();
-				printf("[SharedPtr] dtor. use_count=%ld\n", use_count());
+				printf("[SharedPtr] dtor                      use_count=%ld\n", use_count());
 
 				g_log_indent++;
 				release();
@@ -292,22 +302,69 @@ template <typename T>
 			 *		  if we took it to zero, free both managed object *AND* refcount_ slot
 			*/
 			void release() {
-				if (!refcount_) {
+				if (refcount_ == nullptr) {
 					return;
 				}
 				--*refcount_;
 
 				if (0 == *refcount_) {
 					log_indent();
-					printf("[SharedPtr]. --*refcount_=0. delete ptr_/refcount_\n");
-					delete refcount_;
+					printf("[SharedPtr] --refcount=0  -> delete ptr_; delete refcount_\n");
+					g_log_indent++;
 					delete ptr_;
+					delete refcount_;
+					g_log_indent--;
 				} else {
 					log_indent();
-					printf("[SharedPtr]. --*refcount=%ld\n", *refcount_);
+					printf("[SharedPtr] --refcount=%ld\n", *refcount_);
 				}
 			}
 	};
+
+/*
+ *	Node -- the cycle subject for BLOCK_4.
+ *	auto-incrementing static `s_next_id` so every `new Node{}` gets a unique
+ *	sequential id without the caller passing one. id is initialized FIRST,
+ *	then the SharedPtr<Node> `next` member runs its default ctor (which logs
+ *	"[SharedPtr] default ctor (empty)"), then this struct's body prints
+ *	"[Node{N}] default ctor". so the inner member ctor appears BEFORE the
+ *	outer Node ctor line in the transcript -- that is the truth of C++
+ *	construction order (members first, body second), do not be surprised.
+*/
+struct Node {
+	static int s_next_id;
+	int id;
+	SharedPtr<Node> next;
+
+	Node (
+	) : id(s_next_id++) {
+		log_indent();
+		printf("[Node{%d}] default ctor\n", id);
+	}
+
+	Node (
+		const Node& other
+	) : id(s_next_id++), next(other.next) {
+		log_indent();
+		printf("[Node{%d}] copy ctor (from Node{%d})\n", id, other.id);
+	}
+
+	Node (
+		Node&& other
+	) noexcept : id(s_next_id++), next(std::move(other.next)) {
+		log_indent();
+		printf("[Node{%d}] move ctor (from Node{%d})\n", id, other.id);
+	}
+
+	Node& operator = (const Node&) = delete;
+	Node& operator = (Node&&)      = delete;
+
+	~Node () {
+		log_indent();
+		printf("[Node{%d}] dtor\n", id);
+	}
+};
+int Node::s_next_id = 1;
 
 int main () {
 	#if defined(BLOCK_0)
@@ -315,7 +372,7 @@ int main () {
 	#endif
 
 	#if defined(BLOCK_1)
-		printf("\n==== BLOCK_0: SharedPtr<int> sanity ====\n\n");
+		printf("\n==== BLOCK_1: SharedPtr<int> sanity ====\n\n");
 		{
 			SharedPtr<int> a(new int(42));
 			{
@@ -333,7 +390,7 @@ int main () {
 		printf("after a dies: (the heap int has been deleted)\n");
 	#endif
 	#if defined(BLOCK_2)
-		printf("\n==== BLOCK_1: SharedPtr<Tracer> visibility ====\n\n");
+		printf("\n==== BLOCK_2: SharedPtr<Tracer> visibility ====\n\n");
 		{
 			SharedPtr<Tracer> a(new Tracer(1));
 			SharedPtr<Tracer> b = a;
@@ -343,7 +400,7 @@ int main () {
 		}
 	#endif
 	#if defined(BLOCK_3)
-		printf("\n==== BLOCK_2A: double control block (run under -fsanitize=address) ====\n\n");
+		printf("\n==== BLOCK_3: double control block (run under -fsanitize=address) ====\n\n");
 		printf("--- handing the SAME raw Tracer* to TWO SharedPtrs ---\n\n");
 		{
 			Tracer* raw = new Tracer(99);
@@ -352,16 +409,10 @@ int main () {
 		}
 	#endif
 	#if defined(BLOCK_4)
-		printf("\n==== BLOCK_2B: cycle leak (run under -fsanitize=address) ====\n\n");
+		printf("\n==== BLOCK_4: cycle leak (run under -fsanitize=address) ====\n\n");
 		{
-			struct Node {
-				SharedPtr<Node> next;
-				int v;
-			};
 			SharedPtr<Node> a(new Node{});
 			SharedPtr<Node> b(new Node{});
-			a->v    = 1;
-			b->v    = 2;
 			a->next = b;
 			b->next = a;
 		}
