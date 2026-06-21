@@ -332,4 +332,14 @@ int main () {
 		}
 		printf("after a dies: (the heap int has been deleted)\n");
 	#endif
+	#if defined(BLOCK_1)
+		printf("\n==== BLOCK_1: SharedPtr<Tracer> visibility ====\n\n");
+		{
+			SharedPtr<Tracer> a(new Tracer(1));
+			SharedPtr<Tracer> b = a;
+			SharedPtr<Tracer> c(new Tracer(2));
+			b = c;
+			SharedPtr<Tracer> d = std::move(c);
+		}
+	#endif
 }
