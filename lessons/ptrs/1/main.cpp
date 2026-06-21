@@ -332,7 +332,7 @@ int main () {
 		}
 		printf("after a dies: (the heap int has been deleted)\n");
 	#endif
-	#if defined(BLOCK_1)
+	#if defined(BLOCK_2)
 		printf("\n==== BLOCK_1: SharedPtr<Tracer> visibility ====\n\n");
 		{
 			SharedPtr<Tracer> a(new Tracer(1));
@@ -340,6 +340,30 @@ int main () {
 			SharedPtr<Tracer> c(new Tracer(2));
 			b = c;
 			SharedPtr<Tracer> d = std::move(c);
+		}
+	#endif
+	#if defined(BLOCK_3)
+		printf("\n==== BLOCK_2A: double control block (run under -fsanitize=address) ====\n\n");
+		printf("--- handing the SAME raw Tracer* to TWO SharedPtrs ---\n\n");
+		{
+			Tracer* raw = new Tracer(99);
+			SharedPtr<Tracer> a(raw);
+			SharedPtr<Tracer> b(raw);
+		}
+	#endif
+	#if defined(BLOCK_4)
+		printf("\n==== BLOCK_2B: cycle leak (run under -fsanitize=address) ====\n\n");
+		{
+			struct Node {
+				SharedPtr<Node> next;
+				int v;
+			};
+			SharedPtr<Node> a(new Node{});
+			SharedPtr<Node> b(new Node{});
+			a->v    = 1;
+			b->v    = 2;
+			a->next = b;
+			b->next = a;
 		}
 	#endif
 }
