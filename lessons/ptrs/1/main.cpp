@@ -297,7 +297,7 @@ template <typename T>
 				}
 				--*refcount_;
 
-				if (0 == refcount_) {
+				if (0 == *refcount_) {
 					log_indent();
 					printf("[SharedPtr]. --*refcount_=0. delete ptr_/refcount_\n");
 					delete refcount_;
