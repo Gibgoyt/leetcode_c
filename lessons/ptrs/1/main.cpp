@@ -29,16 +29,307 @@
 */
 static int g_log_indent = 0;
 static void log_indent () {
-	for (int i = 0; i < g_log_indent; i++) putchar('\t');
+	for (int i = 0; i < g_log_indent; i++) {
+		putchar('\t');
+	}
 }
 
-struct Tracer {};
+struct Tracer {
+	int id;
+
+	/*
+	 *	parametized ctor
+	*/
+	Tracer (
+		int in_id
+	) : id(in_id) {
+		log_indent();
+		printf("[Tracer{%d}] parametized ctor\n", id);
+	}
+
+	/*
+	 *	copy/lvalue ctor
+	*/
+	Tracer (
+		const Tracer& other
+	) : id(other.id) {
+		log_indent();
+		printf("[Tracer{%d}] copy ctor\n", id);
+	}
+
+	/*
+	 *	move/rvalue ctor
+	*/
+	Tracer (
+		Tracer&& other
+	) noexcept : id(other.id) {
+		log_indent();
+		printf("[Tracer{%d}] move ctor\n", id);
+	}
+
+	/*
+	 *	copy asign (non-existent)
+	*/
+	Tracer& operator = (
+		const Tracer& other
+	) = delete;
+
+	/*
+	 *	move asign ctor (non-existent)
+	*/
+	Tracer& operator = (
+		Tracer&&
+	) = delete;
+
+	~Tracer () {
+		log_indent();
+		printf("[Tracer{%d}] dtor\n", id);
+	}
+};
 
 template <typename T>
-	class SharedPts {};
+	class SharedPtr {
+		private:
+			T* ptr_ = nullptr;
+			long* refcount_ = nullptr;
+		
+		public:
+			/*
+			 *	default ctor
+			*/
+			SharedPtr () {
+				log_indent();
+				printf("[Tracer{%d}] move ctor\n");
+			}
+
+			/*
+			 *	parametized ctor
+			 *	explicit ctor(T*)
+			 *		takes ownership of a raw ptr
+			 *		allocate brand new refcount slot on the heap (init to 1)
+			 *	
+			 *	`explicit` because `SharedPtr` is not implicitly convertible from raw `T*`
+			 *	otherwise `void f(SharedPtr<T>)` and `f(new T)` will work silently
+			 *	hence, losing track which raw ptrs own which smart ptrs
+			*/
+			explicit SharedPtr (
+				T* raw
+			) : ptr_(raw), refcount_(new long(1)) {
+				log_indent();
+				printf("[SharedPtr] explicit ctor(T*) refcount=1\n");
+			}
+
+			/*
+			 *	copy ctor
+			 *	shares the same object and the same refcount slot
+			 *	bump it
+			 *	this is the entire point of SharePtr{}, multiple ptr_ pointing to the same heap memory
+			*/
+			SharedPtr (
+				SharedPtr& other
+			) : ptr_(other.ptr_), refcount_(other.refcount_) {
+				// TODO!!: warning Implicit conversion 'long *' -> 'bool' (fix available)
+				if (refcount_) {
+					++*refcount_;
+				}
+
+				log_indent();
+				printf("[SharedPtr] copy ctor                 use_count=%ld\n", use_count());
+			}
+
+			/*
+			 *	copy asign ctor
+			 *	3 steps:
+			 *		1. self asign guard
+			 *		   i.e. same refcount_ slot => same owner group
+			 *		2. release()
+			 *		   releases current ownership
+			 *		   may return ~T() dtor!!
+			 *		3. mirror the copy ctor
+			 *		   copy ptrs + bump refcount_
+			 *
+			 *	self-asign guard:
+			 *		checks refcount_ ptrs because 2 SharedPtr{}s share refcount slot IFF they are part of same ownership group
+			 *		comparing `this == &other` should also work
+			 *		but recount_ comparison short-circuits `a = b` when `a` and `b` are 2 SharedPtr{}s that already share same target
+			 *		no op + no churn on refcount_
+			*/
+			SharedPtr& operator = (
+				const SharedPtr& other
+			) {
+				/*
+				 *	i do not completely understand this???
+				 *	what if two separate SharedPtr{} had the same refcount???
+				 *	seems like this only considers if a copy happens within a scope that only has a single SharedPtr{} lifetime???
+				*/
+				if (this->refcount_ == other.refcount_) {
+					return *this;
+				}
+
+				log_indent();
+				printf("[SharedPtr] copy asign. ptr_=%p, refcount_=%ld\n", ptr_, *refcount_);
+				g_log_indent++;
+				release();
+
+				ptr_ = other.ptr_;
+				refcount_ = other.refcount_;
+
+				if (refcount_) {
+					++*refcount_;
+					log_indent();
+					printf("[SharedPtr] ***refcount_=%ld\n", *refcount_);
+				}
+
+				g_log_indent--;
+
+				return *this;
+			}
+
+			/*
+			 *	move ctor
+			 *	steal both ptrs + null the src
+			 *	*NO refcount_ CHANGE*
+			 *	total no. of owners unchanged
+			 *	one owner relocated from 'other' to 'this'
+			 *
+			 *	noexcept
+			 *		STL containers (e.g. Vector, etc...)
+			 *		will only use a move ctor during internal re-alloc *IFF* it is 'noexcept'
+			 *		otherwise they fall back to copy ctor
+			 *		and a copy ctor costs atomic refcount bump per element
+			 *		for SharedPtr{} that is wasteful! hence mark 'noexcept' and STL will use out move ctor
+			*/
+			SharedPtr (
+				SharedPtr&& other
+			) noexcept : ptr_(other.ptr_), refcount_(other.refcount_) {
+				other.ptr_ = nullptr;
+				other.refcount_ = nullptr;
+
+				log_indent();
+				printf("[SharedPtr] move ctor. use_count=%ldn\n", use_count());
+			}
+
+			/*
+			 *	move asign
+			 *
+			 *	drop current
+			 *	steal src
+			 *	null src
+			 *
+			 *	self move guard:
+			 *		x = std::move(x); must be safe (i.e. a no op)
+			 *		comparing `this == &other` because self move asign we will release ourself then steal the buffers from ourself that we just NULLed
+			*/
+			SharedPtr& operator = (
+				SharedPtr&& other
+			) noexcept {
+				if (this == &other) {
+					return &other;
+				}
+
+				log_indent();
+				printf("[SharedPtr] move asign. ptr_=%p. refcount_=%ld\n", ptr_, *refcount_);
+				g_log_indent++;
+
+				release();
+
+				ptr_ = other.ptr_;
+				refcount_ = other.refcount_;
+				other.ptr_ = nullptr;
+				other.refcount_ = nullptr;
+
+				g_log_indent--;
+
+				return *this;
+			};
+
+			/*
+			 *	dtor
+			 *	better than raw refcount convention 'kref' like in  C
+			*/
+			~SharedPtr () {
+				log_indent();
+				printf("[SharedPtr] dtor. use_count=%ld\n", use_count());
+
+				g_log_indent++;
+				release();
+				g_log_indent--;
+			}
+
+			/*
+			 *	accessor methods
+			*/
+			T& operator * () const {
+				return *ptr_;
+			}
+
+			T* operator -> () const {
+				return ptr_;
+			}
+
+			T* get () const {
+				return ptr_;
+			}
+
+			long use_count () const {
+				return (refcount_) ? (*refcount_) : (0);
+			} 
+			
+			explicit operator bool () const {
+				return ptr_ != nullptr;
+			}
+		private:
+			/*
+			 *	release()
+			 *	the only function that knows how to drop an owner
+			 *	always called under g_log_indent++ from its caller (dtor/op=)
+			 *
+			 *	invariants:
+			 *		- refcount_ = null
+			 *		  we own nothing, nothing to do
+			 *		- else
+			 *		  decrement
+			 *		  if we took it to zero, free both managed object *AND* refcount_ slot
+			*/
+			void release() {
+				if (!refcount_) {
+					return;
+				}
+				--*refcount_;
+
+				if (0 == refcount_) {
+					log_indent();
+					printf("[SharedPtr]. --*refcount_=0. delete ptr_/refcount_\n");
+					delete refcount_;
+					delete ptr_;
+				} else {
+					log_indent();
+					printf("[SharedPtr]. --*refcount=%ld\n", *refcount_);
+				}
+			}
+	};
 
 int main () {
-	#if defined(BLOCK_1)
+	#if defined(BLOCK_0)
 		printf("Hello World\n");
+	#endif
+
+	#if defined(BLOCK_1)
+		printf("\n==== BLOCK_0: SharedPtr<int> sanity ====\n\n");
+		{
+			SharedPtr<int> a(new int(42));
+			{
+				SharedPtr<int> b = a;
+				{
+					SharedPtr<int> c = b;
+					printf("*a=%d *b=%d *c=%d\n", *a, *b, *c);
+					printf("use_count: a=%ld b=%ld c=%ld\n",
+						a.use_count(), b.use_count(), c.use_count());
+				}
+				printf("after c dies: a.use_count=%ld\n", a.use_count());
+			}
+			printf("after b dies: a.use_count=%ld\n", a.use_count());
+		}
+		printf("after a dies: (the heap int has been deleted)\n");
 	#endif
 }
