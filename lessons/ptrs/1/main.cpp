@@ -324,12 +324,28 @@ template <typename T>
 /*
  *	Node -- the cycle subject for BLOCK_4.
  *	auto-incrementing static `s_next_id` so every `new Node{}` gets a unique
- *	sequential id without the caller passing one. id is initialized FIRST,
- *	then the SharedPtr<Node> `next` member runs its default ctor (which logs
- *	"[SharedPtr] default ctor (empty)"), then this struct's body prints
- *	"[Node{N}] default ctor". so the inner member ctor appears BEFORE the
- *	outer Node ctor line in the transcript -- that is the truth of C++
- *	construction order (members first, body second), do not be surprised.
+ *	sequential id without the caller passing one.
+ *
+ *	INDENT RULE for ctors (the trick):
+ *	    by default C++ initializes members BEFORE the body runs, so the natural
+ *	    log order is "[SharedPtr] default ctor (empty)" THEN "[Node{1}] ...".
+ *	    that hides which SharedPtr is the next member of which Node.
+ *
+ *	    we flip the order by ANNOUNCING in the init list:
+ *	        id(begin_default_ctor())  -> prints "[Node{N}] default ctor"
+ *	                                   + bumps g_log_indent
+ *	                                   + returns the new id
+ *	    then `next` initializes at the bumped indent so its log line shows
+ *	    indented under the Node line. body unbumps to restore.
+ *
+ *	    trace of `new Node{}`:
+ *	        1. id init  -> "[Node{1}] default ctor"  + indent 0 -> 1
+ *	        2. next init -> "\t[SharedPtr] default ctor (empty)"
+ *	        3. body     -> indent 1 -> 0
+ *
+ *	dtor has no equivalent trick (we said no private-inheritance guard), so
+ *	the dtor just prints at current indent. node dtor never fires in BLOCK_4
+ *	anyway (cycle leak), so this is moot for this lesson.
 */
 struct Node {
 	static int s_next_id;
@@ -337,23 +353,20 @@ struct Node {
 	SharedPtr<Node> next;
 
 	Node (
-	) : id(s_next_id++) {
-		log_indent();
-		printf("[Node{%d}] default ctor\n", id);
+	) : id(begin_default_ctor()) {
+		g_log_indent--;
 	}
 
 	Node (
 		const Node& other
-	) : id(s_next_id++), next(other.next) {
-		log_indent();
-		printf("[Node{%d}] copy ctor (from Node{%d})\n", id, other.id);
+	) : id(begin_copy_ctor(other.id)), next(other.next) {
+		g_log_indent--;
 	}
 
 	Node (
 		Node&& other
-	) noexcept : id(s_next_id++), next(std::move(other.next)) {
-		log_indent();
-		printf("[Node{%d}] move ctor (from Node{%d})\n", id, other.id);
+	) noexcept : id(begin_move_ctor(other.id)), next(std::move(other.next)) {
+		g_log_indent--;
 	}
 
 	Node& operator = (const Node&) = delete;
@@ -363,6 +376,29 @@ struct Node {
 		log_indent();
 		printf("[Node{%d}] dtor\n", id);
 	}
+
+	private:
+		static int begin_default_ctor () {
+			int new_id = s_next_id++;
+			log_indent();
+			printf("[Node{%d}] default ctor\n", new_id);
+			g_log_indent++;
+			return new_id;
+		}
+		static int begin_copy_ctor (int from_id) {
+			int new_id = s_next_id++;
+			log_indent();
+			printf("[Node{%d}] copy ctor (from Node{%d})\n", new_id, from_id);
+			g_log_indent++;
+			return new_id;
+		}
+		static int begin_move_ctor (int from_id) {
+			int new_id = s_next_id++;
+			log_indent();
+			printf("[Node{%d}] move ctor (from Node{%d})\n", new_id, from_id);
+			g_log_indent++;
+			return new_id;
+		}
 };
 int Node::s_next_id = 1;
 
