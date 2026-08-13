@@ -33,7 +33,7 @@ Vibration switch module
 The knock sensor module
 The temperature sensor module
 Analogy hall magnetic sensors
-The microphone sound sensor module Big reed module Double
+The microphone sound sensor moBC547Cdule Big reed module Double
 
 The Arduino RFID kit includes the following:
 
@@ -46,7 +46,7 @@ The Arduino RFID kit includes the following:
 1 x 5V stepper motor
 1 x passive buzzer
 1 x active buzzer
-1 x 1602 LCD
+1 x 1602 LCDμ
 1 x DHT11 temperature and humidity sensor
 1 x DS1302 real time clock
 1 x water level sensor
@@ -80,3 +80,18 @@ The Arduino RFID kit includes the following:
 10 x 330Ω resistors
 10 x 220Ω resistors
 1 x resistance card
+
+# FROM THE OFFICE
+5x CBC 547C JS transistors
+6x in5408 plastic silicone rectifier diodes
+30+x 1V 4148 B/P diode
+??x ALU electrolytic capacitor leaded 47uF 35V 20%
+3x capacitor 100 μF 63V
+8x capacitor 100 μF 35V
+??x 3.3kF 2.5V capacitors
+11x capacitor Al FR 100 μF 25V
+17x 220 μF 16V capacitoor
+3x capacitor 470 μF 16V
+4x alum electrolytic capacitor 100 μF 35V
+
+a fuck tonne of resistors
