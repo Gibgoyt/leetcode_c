@@ -94,4 +94,6 @@ The Arduino RFID kit includes the following:
 3x capacitor 470 μF 16V
 4x alum electrolytic capacitor 100 μF 35V
 
+1x 15x13 veriboard
+
 a fuck tonne of resistors
