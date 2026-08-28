@@ -97,3 +97,66 @@ The Arduino RFID kit includes the following:
 1x 15x13 veriboard
 
 a fuck tonne of resistors
+
+# ICs
+3x SN74HC74N
+5x 13R334C inductor
+5x 24LC256 eeprom
+5x 13R473C inductors
+5x 13R106C inductors
+5x TLC555IP 555 timer
+3x SN74HC595N SIPO
+
+15x LM358
+12x lm324
+15x jrc4558
+6x ne5532
+6x lm386
+2x tda2030
+3x tda2822
+6x ua741
+12x lm393
+12x lm339
+24x pc817
+3x cd4047
+3x cd4053
+24x ne555
+3x pt2399
+3x uc3842
+3x uc3843
+3x uln2003
+3x uln2803
+3x 7660
+
+# capacitors
+
+35x 0.1uF 50V
+35x 0.22uF 50V
+35x 0.33uF 50V
+35x 0.47uF 50V
+
+16x 1uF 100V
+35x 1uF 50V
+16x 2.2uF 100V
+35x 2.2uF 50V
+35x 3.3uF 50V
+16x 4.7uF 100V
+35x 4.7uF 50V
+16x 6.8uF 50V
+10x 10uF 100V
+35x 10uF 50V
+35x 10uF 25V
+10x 22uF 100V
+16x 22uF 50V
+35x 22uF 25V
+16x 33uF 50V
+10x 47uF 50V
+25x 47uF 25V
+16x 68uF 25V
+10x 100uF 50V
+10x 220uF 25V
+6x 330uF 25V
+10x 470uF 16V
+10x 680uF 10V
+6x 1,000uF 16V
+4x 2,200uF 10V
